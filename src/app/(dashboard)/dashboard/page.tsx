@@ -1,8 +1,14 @@
+import { redirect } from 'next/navigation';
+
 import { auth, signOut } from '@/lib/auth';
 
 export default async function DashboardPage() {
   const session = await auth();
-  const name = session?.user?.name ?? session?.user?.email ?? 'there';
+  // Defense in depth: the proxy gates this route, but server components must not
+  // trust it as the sole guard (a misconfigured matcher must never leak data).
+  if (!session?.user) redirect('/login');
+
+  const name = session.user.name ?? session.user.email ?? 'there';
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-12">
