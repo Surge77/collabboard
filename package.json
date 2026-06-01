@@ -4,6 +4,7 @@
   "private": true,
   "description": "Real-time collaborative whiteboard with AI-powered diagram generation, canvas analysis, and shape recognition.",
   "type": "module",
+  "packageManager": "pnpm@10.29.3",
   "engines": {
     "node": ">=20"
   },
