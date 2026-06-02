@@ -7,6 +7,7 @@ import { CollabCanvas } from '@/components/board/CollabCanvas';
 interface RoomProps {
   roomId: string;
   boardId: string;
+  canEdit: boolean;
 }
 
 function CanvasFallback() {
@@ -21,12 +22,12 @@ function CanvasFallback() {
   );
 }
 
-export function Room({ roomId, boardId }: RoomProps) {
+export function Room({ roomId, boardId, canEdit }: RoomProps) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       <RoomProvider id={roomId}>
         <ClientSideSuspense fallback={<CanvasFallback />}>
-          <CollabCanvas boardId={boardId} />
+          <CollabCanvas boardId={boardId} canEdit={canEdit} />
         </ClientSideSuspense>
       </RoomProvider>
     </LiveblocksProvider>

@@ -1,7 +1,7 @@
 import { Liveblocks } from '@liveblocks/node';
 
 import { auth } from '@/lib/auth';
-import { getBoard } from '@/lib/boards';
+import { getViewableBoard } from '@/lib/boards';
 import { boardIdFromRoom, userColor } from '@/lib/liveblocks';
 
 function roomFromBody(body: unknown): string | null {
@@ -24,10 +24,10 @@ export async function POST(request: Request) {
     return new Response('Bad request', { status: 400 });
   }
 
-  // Only the board owner may join its room. Reuses the same ownership guard as
-  // the REST routes so realtime access can never exceed REST access.
-  const board = await getBoard(boardId, session.user.id);
-  if (!board) {
+  // Owner gets full (edit) access; anyone else gets read-only, but only if the
+  // board is public. Non-owners of private boards are rejected.
+  const viewable = await getViewableBoard(boardId, session.user.id);
+  if (!viewable) {
     return new Response('Forbidden', { status: 403 });
   }
 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       color: userColor(session.user.id),
     },
   });
-  lbSession.allow(room, lbSession.FULL_ACCESS);
+  lbSession.allow(room, viewable.role === 'owner' ? lbSession.FULL_ACCESS : lbSession.READ_ACCESS);
 
   const { body, status } = await lbSession.authorize();
   return new Response(body, { status });

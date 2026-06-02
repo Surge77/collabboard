@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { Canvas } from '@/components/board/Canvas';
+import { ShareDialog } from '@/components/board/ShareDialog';
 import { auth } from '@/lib/auth';
-import { getBoard } from '@/lib/boards';
+import { getViewableBoard } from '@/lib/boards';
 import { boardRoomId } from '@/lib/liveblocks';
 
 interface BoardPageProps {
@@ -16,8 +17,11 @@ export default async function BoardPage({ params }: BoardPageProps) {
   if (!session?.user?.id) redirect('/login');
 
   const { id } = await params;
-  const board = await getBoard(id, session.user.id);
-  if (!board) notFound();
+  const viewable = await getViewableBoard(id, session.user.id);
+  if (!viewable) notFound();
+
+  const { board, role } = viewable;
+  const canEdit = role === 'owner';
 
   return (
     <main className="relative flex h-dvh w-full flex-col">
@@ -29,11 +33,19 @@ export default async function BoardPage({ params }: BoardPageProps) {
           ← Boards
         </Link>
         <h1 className="truncate text-sm font-semibold">{board.title}</h1>
+        {!canEdit ? (
+          <span className="text-foreground/50 border-foreground/15 rounded-full border px-2 py-0.5 text-xs">
+            View only
+          </span>
+        ) : null}
+        <div className="ml-auto">
+          {canEdit ? <ShareDialog boardId={board.id} initialIsPublic={board.isPublic} /> : null}
+        </div>
       </header>
       <div className="relative flex-1">
-        {/* Each board maps to its own Liveblocks room; the auth endpoint scopes
-            access to the owner. */}
-        <Canvas roomId={boardRoomId(board.id)} boardId={board.id} />
+        {/* Each board maps to its own Liveblocks room; the auth endpoint grants
+            the owner edit access and public viewers read-only access. */}
+        <Canvas roomId={boardRoomId(board.id)} boardId={board.id} canEdit={canEdit} />
       </div>
     </main>
   );

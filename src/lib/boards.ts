@@ -59,6 +59,22 @@ export async function updateBoard(
   return board ? toSummary(board) : null;
 }
 
+export type BoardRole = 'owner' | 'viewer';
+
+// Resolves view access: the owner gets 'owner', anyone else gets 'viewer' only
+// if the board is public, otherwise null (no access). Used by the share/view
+// path and the Liveblocks auth endpoint to grant edit vs read-only.
+export async function getViewableBoard(
+  id: string,
+  userId: string
+): Promise<{ board: BoardSummary; role: BoardRole } | null> {
+  const board = await db.board.findUnique({ where: { id } });
+  if (!board) return null;
+  if (board.userId === userId) return { board: toSummary(board), role: 'owner' };
+  if (board.isPublic) return { board: toSummary(board), role: 'viewer' };
+  return null;
+}
+
 export async function deleteBoard(id: string, userId: string): Promise<boolean> {
   // deleteMany scoped by userId enforces ownership atomically; count tells us
   // whether anything matched without a separate existence query.
