@@ -25,13 +25,16 @@ summarize what's on the board, and collaborate with live cursors.
 - 🔐 OAuth authentication and persistent boards
 - 📤 Export to PNG / PDF
 
+> Status: **Phase 0 complete** — foundation, auth, database, CI. See
+> [`docs/roadmap.md`](./docs/roadmap.md) for the full plan.
+
 ## Tech stack
 
 | Layer        | Choice                                   |
 | ------------ | ---------------------------------------- |
 | Framework    | Next.js 16 (App Router) · React 19       |
 | Language     | TypeScript 5 (strict)                    |
-| Styling      | Tailwind CSS v4                          |
+| Styling      | Tailwind CSS v4 + shadcn/ui              |
 | Auth         | Auth.js v5 (Google + GitHub OAuth)       |
 | Database     | Neon PostgreSQL + Prisma 6               |
 | Canvas       | tldraw                                   |
@@ -54,11 +57,13 @@ Full instructions: [`docs/local-setup.md`](./docs/local-setup.md).
 
 ## Documentation
 
+- [Roadmap & phase plan](./docs/roadmap.md)
 - [Architecture](./docs/architecture.md)
 - [Local setup](./docs/local-setup.md)
 - [API reference](./docs/api.md)
 - [Database](./docs/database.md)
 - [Deployment](./docs/deployment.md)
+- [Architecture Decision Records](./docs/decisions/)
 
 ## Contributing
 
