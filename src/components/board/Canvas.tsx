@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 
 interface CanvasProps {
   roomId: string;
+  boardId: string;
 }
 
 function CanvasSkeleton() {
@@ -26,6 +27,6 @@ const Room = dynamic(() => import('@/components/board/Room').then((m) => m.Room)
   loading: () => <CanvasSkeleton />,
 });
 
-export function Canvas({ roomId }: CanvasProps) {
-  return <Room roomId={roomId} />;
+export function Canvas({ roomId, boardId }: CanvasProps) {
+  return <Room roomId={roomId} boardId={boardId} />;
 }

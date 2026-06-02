@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 
-export type ApiErrorCode = 'UNAUTHORIZED' | 'NOT_FOUND' | 'VALIDATION_ERROR' | 'INTERNAL_ERROR';
+export type ApiErrorCode =
+  | 'UNAUTHORIZED'
+  | 'NOT_FOUND'
+  | 'VALIDATION_ERROR'
+  | 'RATE_LIMITED'
+  | 'INTERNAL_ERROR';
 
 interface SuccessBody<T> {
   success: true;
