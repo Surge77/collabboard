@@ -15,8 +15,10 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https:",
-      "font-src 'self' data:",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data: https:",
+      // tldraw (Phase 2) spins up web workers from blob: URLs for canvas work.
+      "worker-src 'self' blob:",
       "connect-src 'self' https: wss:",
       "frame-ancestors 'self'",
     ].join('; '),
@@ -24,6 +26,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // tldraw is a DOM-only package; keep it out of the server bundle so the RSC
+  // build never tries to evaluate it on the server.
+  serverExternalPackages: ['tldraw'],
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

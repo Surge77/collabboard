@@ -1,14 +1,17 @@
 import { redirect } from 'next/navigation';
 
+import { BoardList } from '@/components/board/BoardList';
 import { auth, signOut } from '@/lib/auth';
+import { listBoards } from '@/lib/boards';
 
 export default async function DashboardPage() {
   const session = await auth();
   // Defense in depth: the proxy gates this route, but server components must not
   // trust it as the sole guard (a misconfigured matcher must never leak data).
-  if (!session?.user) redirect('/login');
+  if (!session?.user?.id) redirect('/login');
 
   const name = session.user.name ?? session.user.email ?? 'there';
+  const boards = await listBoards(session.user.id);
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-12">
@@ -32,9 +35,7 @@ export default async function DashboardPage() {
         </form>
       </header>
 
-      <div className="border-foreground/15 text-foreground/50 flex h-64 items-center justify-center rounded-xl border border-dashed text-sm">
-        No boards yet — board management arrives in Phase 1.
-      </div>
+      <BoardList initialBoards={boards} />
     </main>
   );
 }
