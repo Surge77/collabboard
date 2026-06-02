@@ -25,7 +25,7 @@ export default async function BoardPage({ params }: BoardPageProps) {
 
   return (
     <main className="relative flex h-dvh w-full flex-col">
-      <header className="border-foreground/10 flex items-center gap-4 border-b px-4 py-2">
+      <header className="border-foreground/10 bg-background relative z-50 flex items-center gap-4 border-b px-4 py-2">
         <Link
           href="/dashboard"
           className="text-foreground/60 hover:text-foreground text-sm font-medium"
@@ -42,7 +42,7 @@ export default async function BoardPage({ params }: BoardPageProps) {
           {canEdit ? <ShareDialog boardId={board.id} initialIsPublic={board.isPublic} /> : null}
         </div>
       </header>
-      <div className="relative flex-1">
+      <div className="relative isolate flex-1">
         {/* Each board maps to its own Liveblocks room; the auth endpoint grants
             the owner edit access and public viewers read-only access. */}
         <Canvas roomId={boardRoomId(board.id)} boardId={board.id} canEdit={canEdit} />
