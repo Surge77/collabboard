@@ -13,10 +13,28 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+const title = 'CollabBoard — Real-time collaborative whiteboard with AI';
+const description =
+  'Draw together in real time on an infinite canvas. Generate diagrams from text, summarize your board, and collaborate with live cursors — powered by AI.';
+
 export const metadata: Metadata = {
-  title: 'CollabBoard — Real-time collaborative whiteboard with AI',
-  description:
-    'Draw together in real time on an infinite canvas. Generate diagrams from text, summarize your board, and collaborate with live cursors — powered by AI.',
+  metadataBase: new URL(appUrl),
+  title,
+  description,
+  applicationName: 'CollabBoard',
+  openGraph: {
+    title,
+    description,
+    url: appUrl,
+    siteName: 'CollabBoard',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title,
+    description,
+  },
 };
 
 export default function RootLayout({
