@@ -114,25 +114,23 @@ describe('getViewableBoard', () => {
   const ownedRecord = { ...board, userId: 'u1' };
 
   it('returns owner role for the board owner', async () => {
-    mockDb.board.findUnique.mockResolvedValue(ownedRecord);
+    mockDb.board.findFirst.mockResolvedValue(ownedRecord);
     const result = await getViewableBoard('b1', 'u1');
     expect(result).toEqual({ board: expect.objectContaining({ id: 'b1' }), role: 'owner' });
   });
 
-  it('returns viewer role for a non-owner when the board is public', async () => {
-    mockDb.board.findUnique.mockResolvedValue({ ...ownedRecord, isPublic: true });
+  it('returns viewer role for a non-owner of a public board', async () => {
+    mockDb.board.findFirst.mockResolvedValue({ ...ownedRecord, isPublic: true });
     const result = await getViewableBoard('b1', 'someone-else');
     expect(result?.role).toBe('viewer');
   });
 
-  it('returns null for a non-owner of a private board', async () => {
-    mockDb.board.findUnique.mockResolvedValue({ ...ownedRecord, isPublic: false });
+  it('returns null when the query matches nothing (private, not owner, or missing)', async () => {
+    mockDb.board.findFirst.mockResolvedValue(null);
     expect(await getViewableBoard('b1', 'someone-else')).toBeNull();
-  });
-
-  it('returns null when the board does not exist', async () => {
-    mockDb.board.findUnique.mockResolvedValue(null);
-    expect(await getViewableBoard('missing', 'u1')).toBeNull();
+    expect(mockDb.board.findFirst).toHaveBeenCalledWith({
+      where: { id: 'b1', OR: [{ userId: 'someone-else' }, { isPublic: true }] },
+    });
   });
 });
 

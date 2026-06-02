@@ -68,11 +68,14 @@ export async function getViewableBoard(
   id: string,
   userId: string
 ): Promise<{ board: BoardSummary; role: BoardRole } | null> {
-  const board = await db.board.findUnique({ where: { id } });
+  // Visibility gate in the query: only the owner's board or a public board is
+  // returned, so a private board belonging to someone else is never fetched.
+  const board = await db.board.findFirst({
+    where: { id, OR: [{ userId }, { isPublic: true }] },
+  });
   if (!board) return null;
-  if (board.userId === userId) return { board: toSummary(board), role: 'owner' };
-  if (board.isPublic) return { board: toSummary(board), role: 'viewer' };
-  return null;
+  const role: BoardRole = board.userId === userId ? 'owner' : 'viewer';
+  return { board: toSummary(board), role };
 }
 
 export async function deleteBoard(id: string, userId: string): Promise<boolean> {

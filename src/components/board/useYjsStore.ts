@@ -27,10 +27,12 @@ import type {
 export function useYjsStore({
   shapeUtils = [],
   user,
+  canEdit = true,
 }: Partial<{
   hostUrl: string;
   version: number;
   shapeUtils: TLAnyShapeUtilConstructor[];
+  canEdit: boolean;
   user: {
     id: string;
     color: string;
@@ -93,27 +95,31 @@ export function useYjsStore({
         });
       }
 
-      // Sync tldraw changes with Yjs
-      unsubs.push(
-        store.listen(
-          function syncStoreChangesToYjsDoc({ changes }) {
-            yDoc.transact(() => {
-              Object.values(changes.added).forEach((record) => {
-                yStore.set(record.id, record);
-              });
+      // Sync tldraw changes with Yjs — only for editors. Liveblocks already
+      // rejects writes from a read-only token; skipping the listener keeps the
+      // client's defense-in-depth symmetric with the server token scope.
+      if (canEdit) {
+        unsubs.push(
+          store.listen(
+            function syncStoreChangesToYjsDoc({ changes }) {
+              yDoc.transact(() => {
+                Object.values(changes.added).forEach((record) => {
+                  yStore.set(record.id, record);
+                });
 
-              Object.values(changes.updated).forEach(([_, record]) => {
-                yStore.set(record.id, record);
-              });
+                Object.values(changes.updated).forEach(([_, record]) => {
+                  yStore.set(record.id, record);
+                });
 
-              Object.values(changes.removed).forEach((record) => {
-                yStore.delete(record.id);
+                Object.values(changes.removed).forEach((record) => {
+                  yStore.delete(record.id);
+                });
               });
-            });
-          },
-          { source: 'user', scope: 'document' } // only sync user's document changes
-        )
-      );
+            },
+            { source: 'user', scope: 'document' } // only sync user's document changes
+          )
+        );
+      }
 
       // Sync Yjs changes with tldraw
       const handleChange = (

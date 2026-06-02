@@ -25,6 +25,7 @@ export function CollabCanvas({ boardId, canEdit }: CollabCanvasProps) {
 
   const store = useYjsStore({
     user: { id, color: info.color, name: info.name },
+    canEdit,
   });
 
   return (
@@ -47,6 +48,8 @@ export function CollabCanvas({ boardId, canEdit }: CollabCanvasProps) {
         }}
       >
         {canEdit ? <AiPanel boardId={boardId} /> : null}
+        {/* Export is available to viewers too: read access implies the right to
+            export what you can already see. Fully client-side, no server call. */}
         <ExportMenu />
       </Tldraw>
     </div>
