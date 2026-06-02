@@ -32,6 +32,7 @@
   "dependencies": {
     "@ai-sdk/google": "3.0.80",
     "@auth/prisma-adapter": "2.11.2",
+    "@excalidraw/excalidraw": "0.18.1",
     "@liveblocks/client": "3.19.3",
     "@liveblocks/node": "3.19.3",
     "@liveblocks/react": "3.19.3",
