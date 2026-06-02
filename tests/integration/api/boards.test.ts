@@ -113,4 +113,20 @@ describe('GET /api/boards/[id]', () => {
     const res = await GET_ONE(new Request('http://localhost'), params('b1'));
     expect(res.status).toBe(401);
   });
+
+  it('returns the board when owned', async () => {
+    signedIn();
+    vi.mocked(boards.getBoard).mockResolvedValue(summary);
+    const res = await GET_ONE(new Request('http://localhost'), params('b1'));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toEqual(summary);
+  });
+
+  it('returns 404 when the board is not found or not owned', async () => {
+    signedIn();
+    vi.mocked(boards.getBoard).mockResolvedValue(null);
+    const res = await GET_ONE(new Request('http://localhost'), params('b1'));
+    expect(res.status).toBe(404);
+  });
 });

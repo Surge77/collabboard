@@ -9,8 +9,8 @@ import type { BoardSummary } from '@/types/board';
 interface BoardCardProps {
   board: BoardSummary;
   isPending: boolean;
-  onRename: (id: string, title: string) => void;
-  onDelete: (id: string) => void;
+  onRename: (id: string, title: string) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
 }
 
 export function BoardCard({ board, isPending, onRename, onDelete }: BoardCardProps) {
@@ -61,7 +61,12 @@ export function BoardCard({ board, isPending, onRename, onDelete }: BoardCardPro
         <button
           type="button"
           disabled={isPending}
-          onClick={() => setIsEditing(true)}
+          onClick={() => {
+            // Re-seed from the current prop: useState's initializer only ran
+            // once, so a prior successful rename would otherwise leave draft stale.
+            setDraft(board.title);
+            setIsEditing(true);
+          }}
           className="text-foreground/60 hover:text-foreground text-xs font-medium disabled:opacity-40"
         >
           Rename

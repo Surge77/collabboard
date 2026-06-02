@@ -46,14 +46,17 @@ export async function updateBoard(
   userId: string,
   input: UpdateBoardData
 ): Promise<BoardSummary | null> {
-  const existing = await db.board.findFirst({ where: { id, userId } });
-  if (!existing) return null;
-
-  const board = await db.board.update({
-    where: { id },
+  // updateMany scoped by userId is atomic: ownership is re-asserted in the same
+  // query that writes, so there is no TOCTOU window and a missing/unowned board
+  // yields count 0 (-> null -> 404) instead of a thrown P2025.
+  const result = await db.board.updateMany({
+    where: { id, userId },
     data: { title: input.title, isPublic: input.isPublic },
   });
-  return toSummary(board);
+  if (result.count === 0) return null;
+
+  const board = await db.board.findFirst({ where: { id, userId } });
+  return board ? toSummary(board) : null;
 }
 
 export async function deleteBoard(id: string, userId: string): Promise<boolean> {

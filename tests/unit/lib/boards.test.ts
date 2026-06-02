@@ -6,7 +6,7 @@ vi.mock('@/lib/db', () => ({
       findMany: vi.fn(),
       create: vi.fn(),
       findFirst: vi.fn(),
-      update: vi.fn(),
+      updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
   },
@@ -28,7 +28,7 @@ const mockDb = db as unknown as {
     findMany: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     findFirst: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
     deleteMany: ReturnType<typeof vi.fn>;
   };
 };
@@ -82,18 +82,22 @@ describe('getBoard', () => {
 });
 
 describe('updateBoard', () => {
-  it('updates an owned board', async () => {
-    mockDb.board.findFirst.mockResolvedValue(board);
-    mockDb.board.update.mockResolvedValue({ ...board, title: 'Renamed' });
+  it('updates an owned board atomically via updateMany', async () => {
+    mockDb.board.updateMany.mockResolvedValue({ count: 1 });
+    mockDb.board.findFirst.mockResolvedValue({ ...board, title: 'Renamed' });
     const result = await updateBoard('b1', 'u1', { title: 'Renamed' });
+    expect(mockDb.board.updateMany).toHaveBeenCalledWith({
+      where: { id: 'b1', userId: 'u1' },
+      data: { title: 'Renamed', isPublic: undefined },
+    });
     expect(result?.title).toBe('Renamed');
   });
 
-  it('returns null without updating when not owned', async () => {
-    mockDb.board.findFirst.mockResolvedValue(null);
+  it('returns null without re-fetching when not owned', async () => {
+    mockDb.board.updateMany.mockResolvedValue({ count: 0 });
     const result = await updateBoard('b1', 'intruder', { title: 'x' });
     expect(result).toBeNull();
-    expect(mockDb.board.update).not.toHaveBeenCalled();
+    expect(mockDb.board.findFirst).not.toHaveBeenCalled();
   });
 });
 

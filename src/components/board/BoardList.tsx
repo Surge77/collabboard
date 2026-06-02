@@ -59,29 +59,58 @@ export function BoardList({ initialBoards }: BoardListProps) {
 
   async function renameBoard(id: string, title: string) {
     setError(null);
-    const previous = boards;
+    // Roll back only this board's title, not a whole-array snapshot — a snapshot
+    // restore would clobber concurrent edits to other cards.
+    const previousTitle = boards.find((b) => b.id === id)?.title;
     setBoards((prev) => prev.map((b) => (b.id === id ? { ...b, title } : b)));
     markPending(id, true);
-    const res = await fetch(`/api/boards/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title }),
-    });
-    markPending(id, false);
-    if (!res.ok) {
-      setBoards(previous);
-      setError(await readError(res));
+    try {
+      const res = await fetch(`/api/boards/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+      if (!res.ok) {
+        if (previousTitle !== undefined) {
+          setBoards((prev) => prev.map((b) => (b.id === id ? { ...b, title: previousTitle } : b)));
+        }
+        setError(await readError(res));
+      }
+    } catch {
+      if (previousTitle !== undefined) {
+        setBoards((prev) => prev.map((b) => (b.id === id ? { ...b, title: previousTitle } : b)));
+      }
+      setError('Something went wrong');
+    } finally {
+      markPending(id, false);
     }
   }
 
   async function deleteBoard(id: string) {
     setError(null);
-    const previous = boards;
+    // Capture only the removed item + its position; re-insert it on failure so a
+    // concurrent rename/delete on another card is not undone.
+    const index = boards.findIndex((b) => b.id === id);
+    const removed = boards[index];
     setBoards((prev) => prev.filter((b) => b.id !== id));
-    const res = await fetch(`/api/boards/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      setBoards(previous);
-      setError(await readError(res));
+    const restore = () => {
+      if (!removed) return;
+      setBoards((prev) => {
+        if (prev.some((b) => b.id === id)) return prev;
+        const next = [...prev];
+        next.splice(Math.min(index, next.length), 0, removed);
+        return next;
+      });
+    };
+    try {
+      const res = await fetch(`/api/boards/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        restore();
+        setError(await readError(res));
+      }
+    } catch {
+      restore();
+      setError('Something went wrong');
     }
   }
 
