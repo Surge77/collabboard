@@ -9,6 +9,7 @@ import { analyzeInputSchema } from '@/lib/validations/ai';
 import { flattenFieldErrors } from '@/lib/zod-errors';
 
 const RATE_LIMIT = 10;
+const AI_GLOBAL_LIMIT = 15;
 const WINDOW_MS = 60_000;
 const MAX_OUTPUT_TOKENS = 600;
 
@@ -18,7 +19,11 @@ export async function POST(request: Request) {
     return apiError('UNAUTHORIZED', 'Sign in to use AI', 401);
   }
 
-  if (!rateLimit(`ai:analyze:${session.user.id}`, RATE_LIMIT, WINDOW_MS)) {
+  // Shared budget across all AI endpoints, then a per-endpoint sub-budget.
+  if (
+    !rateLimit(`ai:${session.user.id}`, AI_GLOBAL_LIMIT, WINDOW_MS) ||
+    !rateLimit(`ai:analyze:${session.user.id}`, RATE_LIMIT, WINDOW_MS)
+  ) {
     return apiError('RATE_LIMITED', 'Too many requests — slow down', 429);
   }
 
@@ -38,10 +43,17 @@ export async function POST(request: Request) {
     return apiError('INTERNAL_ERROR', 'AI is not configured', 500);
   }
 
-  const result = streamText({
-    model,
-    maxOutputTokens: MAX_OUTPUT_TOKENS,
-    prompt: buildAnalyzePrompt(parsed.data.shapes),
-  });
-  return result.toTextStreamResponse();
+  try {
+    const result = streamText({
+      model,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      prompt: buildAnalyzePrompt(parsed.data.shapes),
+      // Swallow provider errors server-side so raw Gemini error payloads
+      // (quota, model ids) never stream to the client.
+      onError: () => {},
+    });
+    return result.toTextStreamResponse();
+  } catch {
+    return apiError('INTERNAL_ERROR', 'AI request failed', 500);
+  }
 }

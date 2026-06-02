@@ -9,6 +9,7 @@ import { aiShapesSchema, generateInputSchema } from '@/lib/validations/ai';
 import { flattenFieldErrors } from '@/lib/zod-errors';
 
 const RATE_LIMIT = 10;
+const AI_GLOBAL_LIMIT = 15;
 const WINDOW_MS = 60_000;
 const MAX_OUTPUT_TOKENS = 1500;
 
@@ -18,7 +19,12 @@ export async function POST(request: Request) {
     return apiError('UNAUTHORIZED', 'Sign in to use AI', 401);
   }
 
-  if (!rateLimit(`ai:generate:${session.user.id}`, RATE_LIMIT, WINDOW_MS)) {
+  // Shared budget across all AI endpoints, then a per-endpoint sub-budget, so a
+  // user cannot get a separate full quota on each route.
+  if (
+    !rateLimit(`ai:${session.user.id}`, AI_GLOBAL_LIMIT, WINDOW_MS) ||
+    !rateLimit(`ai:generate:${session.user.id}`, RATE_LIMIT, WINDOW_MS)
+  ) {
     return apiError('RATE_LIMITED', 'Too many requests — slow down', 429);
   }
 
