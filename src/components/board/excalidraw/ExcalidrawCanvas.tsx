@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Excalidraw } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 
+import { ExcalidrawAiPanel } from '@/components/board/excalidraw/ExcalidrawAiPanel';
 import { ExcalidrawApiProvider } from '@/components/board/excalidraw/ExcalidrawApiContext';
 import { ExcalidrawExportMenu } from '@/components/board/excalidraw/ExcalidrawExportMenu';
 
@@ -13,7 +14,7 @@ interface ExcalidrawCanvasProps {
   canEdit: boolean;
 }
 
-export function ExcalidrawCanvas({ boardId: _boardId, canEdit }: ExcalidrawCanvasProps) {
+export function ExcalidrawCanvas({ boardId, canEdit }: ExcalidrawCanvasProps) {
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
 
   return (
@@ -21,6 +22,7 @@ export function ExcalidrawCanvas({ boardId: _boardId, canEdit }: ExcalidrawCanva
       <Excalidraw viewModeEnabled={!canEdit} excalidrawAPI={(instance) => setApi(instance)} />
       {api ? (
         <ExcalidrawApiProvider value={api}>
+          {canEdit ? <ExcalidrawAiPanel boardId={boardId} /> : null}
           <ExcalidrawExportMenu />
         </ExcalidrawApiProvider>
       ) : null}
