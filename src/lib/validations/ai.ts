@@ -25,8 +25,30 @@ export const analyzeInputSchema = z.object({
 // are NOT: Gemini's structured output emits pathological numbers (hundreds of
 // digits) for them, especially on optional fields, overrunning maxOutputTokens
 // and truncating the JSON. The client applies fixed default sizes instead.
+// Mirrors tldraw's GeoShapeGeoStyle so `type` maps straight to a geo shape and
+// "make a triangle" actually produces a triangle, not a labelled rectangle.
 const aiShapeSchema = z.object({
-  type: z.enum(['rectangle', 'ellipse']),
+  type: z.enum([
+    'rectangle',
+    'ellipse',
+    'triangle',
+    'diamond',
+    'pentagon',
+    'hexagon',
+    'octagon',
+    'star',
+    'rhombus',
+    'oval',
+    'trapezoid',
+    'cloud',
+    'heart',
+    'x-box',
+    'check-box',
+    'arrow-right',
+    'arrow-left',
+    'arrow-up',
+    'arrow-down',
+  ]),
   x: z.number().int().min(0).max(2000),
   y: z.number().int().min(0).max(2000),
   text: z.string().max(80).optional(),
