@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 
 interface CanvasProps {
-  persistenceKey: string;
+  roomId: string;
 }
 
 function CanvasSkeleton() {
@@ -18,14 +18,14 @@ function CanvasSkeleton() {
   );
 }
 
-// tldraw touches window/document on first render, so it cannot be server-rendered.
-// next/dynamic with ssr:false defers it to the client and lazy-loads its heavy
-// bundle behind the skeleton.
-const BoardCanvas = dynamic(
-  () => import('@/components/board/BoardCanvas').then((m) => m.BoardCanvas),
-  { ssr: false, loading: () => <CanvasSkeleton /> }
-);
+// The Liveblocks room + tldraw both touch window/document, so they cannot be
+// server-rendered. ssr:false defers the whole realtime canvas to the client and
+// lazy-loads its heavy bundle behind the skeleton.
+const Room = dynamic(() => import('@/components/board/Room').then((m) => m.Room), {
+  ssr: false,
+  loading: () => <CanvasSkeleton />,
+});
 
-export function Canvas({ persistenceKey }: CanvasProps) {
-  return <BoardCanvas persistenceKey={persistenceKey} />;
+export function Canvas({ roomId }: CanvasProps) {
+  return <Room roomId={roomId} />;
 }
