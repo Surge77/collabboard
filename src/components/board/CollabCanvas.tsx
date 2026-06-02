@@ -6,6 +6,7 @@ import { useSelf } from '@liveblocks/react/suspense';
 
 import { AiPanel } from '@/components/board/AiPanel';
 import { Avatars } from '@/components/board/Avatars';
+import { ColorToggle } from '@/components/board/ColorToggle';
 import { ExportMenu } from '@/components/board/ExportMenu';
 import { useYjsStore } from '@/components/board/useYjsStore';
 
@@ -48,6 +49,7 @@ export function CollabCanvas({ boardId, canEdit }: CollabCanvasProps) {
         }}
       >
         {canEdit ? <AiPanel boardId={boardId} /> : null}
+        {canEdit ? <ColorToggle /> : null}
         {/* Export is available to viewers too: read access implies the right to
             export what you can already see. Fully client-side, no server call. */}
         <ExportMenu />

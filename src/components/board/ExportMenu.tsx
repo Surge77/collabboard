@@ -71,7 +71,7 @@ export function ExportMenu() {
     'rounded-md border border-black/15 bg-white/95 px-2.5 py-1 text-xs font-medium text-neutral-700 shadow-sm disabled:opacity-40';
 
   return (
-    <div className="pointer-events-auto absolute top-3 right-3 z-[300] flex gap-1.5">
+    <div className="pointer-events-auto absolute top-3 left-1/2 z-[300] flex -translate-x-1/2 gap-1.5">
       <button type="button" className={btn} disabled={busy} onClick={() => exportImage('png')}>
         PNG
       </button>
