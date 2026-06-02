@@ -5,15 +5,15 @@
 // http://localhost:3000/canvas-check. Delete before any merge.
 import dynamic from 'next/dynamic';
 
-const ExcalidrawCanvas = dynamic(
-  () => import('@/components/board/excalidraw/ExcalidrawCanvas').then((m) => m.ExcalidrawCanvas),
+const ExcalidrawSurface = dynamic(
+  () => import('@/components/board/excalidraw/ExcalidrawSurface').then((m) => m.ExcalidrawSurface),
   { ssr: false, loading: () => <div className="p-8 text-sm text-neutral-500">Loading canvas…</div> }
 );
 
 export default function CanvasCheckPage() {
   return (
     <main className="relative h-dvh w-full">
-      <ExcalidrawCanvas boardId="spike-demo" canEdit />
+      <ExcalidrawSurface boardId="spike-demo" canEdit />
     </main>
   );
 }
