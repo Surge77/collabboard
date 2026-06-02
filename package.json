@@ -31,12 +31,18 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "2.11.2",
+    "@liveblocks/client": "3.19.3",
+    "@liveblocks/node": "3.19.3",
+    "@liveblocks/react": "3.19.3",
+    "@liveblocks/yjs": "3.19.3",
     "@prisma/client": "6.19.3",
     "next": "16.2.6",
     "next-auth": "5.0.0-beta.31",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "tldraw": "5.0.1",
+    "tldraw": "3.15.6",
+    "y-utility": "0.1.4",
+    "yjs": "13.6.31",
     "zod": "4.4.3"
   },
   "devDependencies": {
