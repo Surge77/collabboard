@@ -33,7 +33,7 @@ export default async function BoardPage({ params }: BoardPageProps) {
       <div className="relative flex-1">
         {/* Each board maps to its own Liveblocks room; the auth endpoint scopes
             access to the owner. */}
-        <Canvas roomId={boardRoomId(board.id)} />
+        <Canvas roomId={boardRoomId(board.id)} boardId={board.id} />
       </div>
     </main>
   );
