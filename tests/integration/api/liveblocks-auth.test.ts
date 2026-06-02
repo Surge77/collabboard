@@ -5,7 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { allow, prepareSession } = vi.hoisted(() => {
   const authorize = vi.fn(async () => ({ body: '{"token":"t"}', status: 200 }));
   const allow = vi.fn();
-  const prepareSession = vi.fn(() => ({ allow, FULL_ACCESS: 'room:write', authorize }));
+  const prepareSession = vi.fn(() => ({
+    allow,
+    FULL_ACCESS: 'room:write',
+    READ_ACCESS: 'room:read',
+    authorize,
+  }));
   return { allow, prepareSession };
 });
 
@@ -15,10 +20,10 @@ vi.mock('@liveblocks/node', () => ({
   }),
 }));
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }));
-vi.mock('@/lib/boards', () => ({ getBoard: vi.fn() }));
+vi.mock('@/lib/boards', () => ({ getViewableBoard: vi.fn() }));
 
 import { auth } from '@/lib/auth';
-import { getBoard } from '@/lib/boards';
+import { getViewableBoard } from '@/lib/boards';
 import { POST } from '@/app/api/liveblocks-auth/route';
 
 const authMock = auth as unknown as ReturnType<typeof vi.fn>;
@@ -46,7 +51,7 @@ describe('POST /api/liveblocks-auth', () => {
     authMock.mockResolvedValue(null);
     const res = await POST(req({ room: ROOM }));
     expect(res.status).toBe(401);
-    expect(getBoard).not.toHaveBeenCalled();
+    expect(getViewableBoard).not.toHaveBeenCalled();
   });
 
   it('returns 400 for a room id outside the board namespace', async () => {
@@ -61,26 +66,39 @@ describe('POST /api/liveblocks-auth', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 403 when the user does not own the board', async () => {
+  it('returns 403 when the board is not viewable', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue(null);
+    vi.mocked(getViewableBoard).mockResolvedValue(null);
     const res = await POST(req({ room: ROOM }));
     expect(res.status).toBe(403);
     expect(allow).not.toHaveBeenCalled();
   });
 
-  it('authorizes the owner for exactly their room', async () => {
+  const board = {
+    id: 'b1',
+    title: 'B',
+    isPublic: false,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+
+  it('grants the owner full (edit) access to their room', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue({
-      id: 'b1',
-      title: 'B',
-      isPublic: false,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    });
+    vi.mocked(getViewableBoard).mockResolvedValue({ board, role: 'owner' });
     const res = await POST(req({ room: ROOM }));
     expect(res.status).toBe(200);
     expect(prepareSession).toHaveBeenCalledWith('u1', expect.anything());
     expect(allow).toHaveBeenCalledWith(ROOM, 'room:write');
+  });
+
+  it('grants a public viewer read-only access', async () => {
+    signedIn();
+    vi.mocked(getViewableBoard).mockResolvedValue({
+      board: { ...board, isPublic: true },
+      role: 'viewer',
+    });
+    const res = await POST(req({ room: ROOM }));
+    expect(res.status).toBe(200);
+    expect(allow).toHaveBeenCalledWith(ROOM, 'room:read');
   });
 });
