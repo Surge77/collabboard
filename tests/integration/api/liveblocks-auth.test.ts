@@ -22,7 +22,7 @@ import { getBoard } from '@/lib/boards';
 import { POST } from '@/app/api/liveblocks-auth/route';
 
 const authMock = auth as unknown as ReturnType<typeof vi.fn>;
-const ROOM = 'collabboard:board:b1';
+const ROOM = 'collabboard:board:ckx7p2m9q4r8s1t3u5v7w9y2z';
 
 function req(body: unknown) {
   return new Request('http://localhost/api/liveblocks-auth', {

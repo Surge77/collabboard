@@ -4,8 +4,14 @@ export function boardRoomId(boardId: string): string {
   return `${ROOM_PREFIX}${boardId}`;
 }
 
+// Board ids are Prisma cuid()s. Validating the shape here turns a crafted room
+// string into a 400 at the route boundary instead of a wasted DB round-trip.
+const CUID_RE = /^c[a-z0-9]{20,}$/i;
+
 export function boardIdFromRoom(roomId: string): string | null {
-  return roomId.startsWith(ROOM_PREFIX) ? roomId.slice(ROOM_PREFIX.length) : null;
+  if (!roomId.startsWith(ROOM_PREFIX)) return null;
+  const id = roomId.slice(ROOM_PREFIX.length);
+  return CUID_RE.test(id) ? id : null;
 }
 
 // Deterministic per-user cursor/avatar color so the same user is the same color
