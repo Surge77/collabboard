@@ -4,10 +4,6 @@ import { auth } from '@/lib/auth';
 import { getBoard } from '@/lib/boards';
 import { boardIdFromRoom, userColor } from '@/lib/liveblocks';
 
-const liveblocks = new Liveblocks({
-  secret: process.env.LIVEBLOCKS_SECRET_KEY as string,
-});
-
 function roomFromBody(body: unknown): string | null {
   if (body && typeof body === 'object' && 'room' in body) {
     const room = (body as { room: unknown }).room;
@@ -34,6 +30,15 @@ export async function POST(request: Request) {
   if (!board) {
     return new Response('Forbidden', { status: 403 });
   }
+
+  // Instantiated per request (not at module load) so a missing key fails as a
+  // clean 500 here rather than throwing during build, and is never used to sign
+  // a token with an "undefined" secret.
+  const secret = process.env.LIVEBLOCKS_SECRET_KEY;
+  if (!secret) {
+    return new Response('Realtime is not configured', { status: 500 });
+  }
+  const liveblocks = new Liveblocks({ secret });
 
   const lbSession = liveblocks.prepareSession(session.user.id, {
     userInfo: {

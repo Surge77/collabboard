@@ -38,6 +38,7 @@ function signedIn() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv('LIVEBLOCKS_SECRET_KEY', 'sk_test_dummy');
 });
 
 describe('POST /api/liveblocks-auth', () => {
