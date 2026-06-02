@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { Canvas } from '@/components/board/Canvas';
 import { auth } from '@/lib/auth';
 import { getBoard } from '@/lib/boards';
+import { boardRoomId } from '@/lib/liveblocks';
 
 interface BoardPageProps {
   params: Promise<{ id: string }>;
@@ -30,9 +31,9 @@ export default async function BoardPage({ params }: BoardPageProps) {
         <h1 className="truncate text-sm font-semibold">{board.title}</h1>
       </header>
       <div className="relative flex-1">
-        {/* Namespaced persistence key keeps each board's local IndexedDB store
-            isolated; Liveblocks replaces this with a shared store in Phase 3. */}
-        <Canvas persistenceKey={`collabboard-${board.id}`} />
+        {/* Each board maps to its own Liveblocks room; the auth endpoint scopes
+            access to the owner. */}
+        <Canvas roomId={boardRoomId(board.id)} />
       </div>
     </main>
   );
