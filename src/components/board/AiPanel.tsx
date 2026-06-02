@@ -44,8 +44,8 @@ export function AiPanel({ boardId }: { boardId: string }) {
         y: s.y,
         props: {
           geo: s.type,
-          w: s.width ?? DEFAULT_W,
-          h: s.height ?? DEFAULT_H,
+          w: DEFAULT_W,
+          h: DEFAULT_H,
           richText: toRichText(s.text ?? ''),
         },
       }))
