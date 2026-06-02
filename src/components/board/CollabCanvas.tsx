@@ -4,6 +4,7 @@ import 'tldraw/tldraw.css';
 import { DefaultStylePanel, Tldraw } from 'tldraw';
 import { useSelf } from '@liveblocks/react/suspense';
 
+import { AiPanel } from '@/components/board/AiPanel';
 import { Avatars } from '@/components/board/Avatars';
 import { useYjsStore } from '@/components/board/useYjsStore';
 
@@ -11,7 +12,7 @@ import { useYjsStore } from '@/components/board/useYjsStore';
 // runtime. The Hobby key is added at deploy time.
 const licenseKey = process.env.NEXT_PUBLIC_TLDRAW_LICENSE_KEY;
 
-export function CollabCanvas() {
+export function CollabCanvas({ boardId }: { boardId: string }) {
   // Selectors (not bare useSelf) avoid re-rendering on every presence change.
   const id = useSelf((me) => me.id);
   const info = useSelf((me) => me.info);
@@ -34,7 +35,9 @@ export function CollabCanvas() {
             </div>
           ),
         }}
-      />
+      >
+        <AiPanel boardId={boardId} />
+      </Tldraw>
     </div>
   );
 }
