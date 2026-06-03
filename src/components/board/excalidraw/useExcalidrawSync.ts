@@ -121,11 +121,12 @@ export function useExcalidrawSync({ api, user, canEdit }: UseExcalidrawSyncArgs)
   // === DOCUMENT: Excalidraw -> Yjs (editors only) =========================
   const onChange = (elements: readonly Element[]) => {
     if (!canEdit || applyingRemote.current) return;
-    const remoteVersions = new Map<string, number>();
+    const remote = new Map<string, { version: number; versionNonce: number }>();
     for (const id of yElements.keys()) {
-      remoteVersions.set(id, yElements.get(id)!.version);
+      const el = yElements.get(id)!;
+      remote.set(id, { version: el.version, versionNonce: el.versionNonce });
     }
-    const { toSet, toDelete } = reconcileElements(elements, remoteVersions);
+    const { toSet, toDelete } = reconcileElements(elements, remote);
     if (toSet.length === 0 && toDelete.length === 0) return;
     yDoc.transact(() => {
       for (const el of toSet) yElements.set(el.id, el);
