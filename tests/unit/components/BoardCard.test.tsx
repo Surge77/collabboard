@@ -15,17 +15,19 @@ const board: BoardSummary = {
 
 function renderCard(overrides: Partial<Parameters<typeof BoardCard>[0]> = {}) {
   const onRename = vi.fn();
+  const onDuplicate = vi.fn();
   const onDelete = vi.fn();
   render(
     <BoardCard
       board={board}
       isPending={false}
       onRename={onRename}
+      onDuplicate={onDuplicate}
       onDelete={onDelete}
       {...overrides}
     />
   );
-  return { onRename, onDelete };
+  return { onRename, onDuplicate, onDelete };
 }
 
 describe('BoardCard', () => {
@@ -59,9 +61,17 @@ describe('BoardCard', () => {
     expect(onDelete).toHaveBeenCalledWith('b1');
   });
 
+  it('calls onDuplicate when Duplicate is clicked', async () => {
+    const user = userEvent.setup();
+    const { onDuplicate } = renderCard();
+    await user.click(screen.getByRole('button', { name: 'Duplicate' }));
+    expect(onDuplicate).toHaveBeenCalledWith('b1');
+  });
+
   it('disables actions while pending', () => {
     renderCard({ isPending: true });
     expect(screen.getByRole('button', { name: 'Rename' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Duplicate' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
   });
 });

@@ -10,10 +10,11 @@ interface BoardCardProps {
   board: BoardSummary;
   isPending: boolean;
   onRename: (id: string, title: string) => void | Promise<void>;
+  onDuplicate: (id: string) => void | Promise<void>;
   onDelete: (id: string) => void | Promise<void>;
 }
 
-export function BoardCard({ board, isPending, onRename, onDelete }: BoardCardProps) {
+export function BoardCard({ board, isPending, onRename, onDuplicate, onDelete }: BoardCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(board.title);
 
@@ -70,6 +71,14 @@ export function BoardCard({ board, isPending, onRename, onDelete }: BoardCardPro
           className="text-foreground/60 hover:text-foreground text-xs font-medium disabled:opacity-40"
         >
           Rename
+        </button>
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() => onDuplicate(board.id)}
+          className="text-foreground/60 hover:text-foreground text-xs font-medium disabled:opacity-40"
+        >
+          Duplicate
         </button>
         <button
           type="button"
