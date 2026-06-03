@@ -11,7 +11,12 @@ export const TEST_USER = {
   name: 'E2E Sync',
 };
 
-export const TEST_BOARD_ID = 'ce2esyncboardv2000000001';
+// One board (room) per test so parallel specs don't share Yjs state.
+export const TEST_BOARDS = {
+  draw: 'ce2esyncdraw00000000000001',
+  multi: 'ce2esyncmulti0000000000001',
+  remove: 'ce2esyncremove000000000001',
+} as const;
 
 // Auth.js v5 names the session cookie `authjs.session-token` on non-HTTPS
 // origins; this value is also the encryption salt.

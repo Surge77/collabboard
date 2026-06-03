@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
-import { STORAGE_STATE, TEST_BOARD_ID } from './sync.fixtures';
+import { STORAGE_STATE, TEST_BOARDS } from './sync.fixtures';
 
 // Reads the test-only handle exposed by ExcalidrawSurface under
 // NEXT_PUBLIC_E2E_HOOKS. Counts rendered (non-zero-size) elements — the 0x0
@@ -16,41 +16,85 @@ function visibleElementCount(): number {
   return api.getSceneElements().filter((e) => e.width > 0 && e.height > 0).length;
 }
 
+const count = (page: Page) => page.evaluate(visibleElementCount);
+
+// Excalidraw needs a real pointer sequence with small gaps between moves,
+// otherwise the drag is dropped and no element is created.
+async function drawRect(page: Page, x: number, y: number): Promise<void> {
+  await page.locator('[title*="Rectangle"]').first().click();
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i += 1) {
+    await page.mouse.move(x + i * 18, y + i * 14);
+    await page.waitForTimeout(20);
+  }
+  await page.mouse.up();
+}
+
+async function openBoard(page: Page, boardId: string): Promise<void> {
+  await page.goto(`/board/${boardId}`);
+  await page.locator('.excalidraw').waitFor();
+  expect(await count(page), 'E2E scene hook must be present').toBeGreaterThanOrEqual(0);
+}
+
 test('a shape drawn in one client appears with real geometry in the other', async ({ browser }) => {
-  const url = `/board/${TEST_BOARD_ID}`;
   const ctxA = await browser.newContext({ storageState: STORAGE_STATE });
   const ctxB = await browser.newContext({ storageState: STORAGE_STATE });
   const a = await ctxA.newPage();
   const b = await ctxB.newPage();
-
   try {
-    await a.goto(url);
-    await b.goto(url);
-    await a.locator('.excalidraw').waitFor();
-    await b.locator('.excalidraw').waitFor();
+    await openBoard(a, TEST_BOARDS.draw);
+    await openBoard(b, TEST_BOARDS.draw);
 
-    const before = await b.evaluate(visibleElementCount);
-    expect(before, 'E2E scene hook must be present').toBeGreaterThanOrEqual(0);
+    await drawRect(a, 620, 320);
+    await expect.poll(() => count(a), { timeout: 5_000 }).toBeGreaterThan(0);
+    await expect.poll(() => count(b), { timeout: 15_000 }).toBe(1);
+  } finally {
+    await ctxA.close();
+    await ctxB.close();
+  }
+});
 
-    // Draw a rectangle in client A. Excalidraw needs a real pointer sequence
-    // with small gaps between moves, otherwise the drag is dropped.
-    await a.locator('[title*="Rectangle"]').first().click();
-    await a.waitForTimeout(150);
-    await a.mouse.move(620, 320);
-    await a.mouse.down();
-    for (let i = 1; i <= 8; i += 1) {
-      await a.mouse.move(620 + i * 24, 320 + i * 18);
-      await a.waitForTimeout(20);
-    }
-    await a.mouse.up();
+test('multiple shapes all sync to the other client', async ({ browser }) => {
+  const ctxA = await browser.newContext({ storageState: STORAGE_STATE });
+  const ctxB = await browser.newContext({ storageState: STORAGE_STATE });
+  const a = await ctxA.newPage();
+  const b = await ctxB.newPage();
+  try {
+    await openBoard(a, TEST_BOARDS.multi);
+    await openBoard(b, TEST_BOARDS.multi);
 
-    // Confirm the draw registered locally before asserting it propagated.
-    await expect.poll(() => a.evaluate(visibleElementCount), { timeout: 5_000 }).toBeGreaterThan(0);
+    await drawRect(a, 280, 250);
+    await drawRect(a, 560, 250);
+    await drawRect(a, 840, 250);
 
-    // Client B should receive it with non-zero geometry (the regression guard).
-    await expect
-      .poll(() => b.evaluate(visibleElementCount), { timeout: 15_000 })
-      .toBeGreaterThan(before);
+    await expect.poll(() => count(a), { timeout: 5_000 }).toBe(3);
+    await expect.poll(() => count(b), { timeout: 15_000 }).toBe(3);
+  } finally {
+    await ctxA.close();
+    await ctxB.close();
+  }
+});
+
+test('deleting a shape in one client removes it in the other', async ({ browser }) => {
+  const ctxA = await browser.newContext({ storageState: STORAGE_STATE });
+  const ctxB = await browser.newContext({ storageState: STORAGE_STATE });
+  const a = await ctxA.newPage();
+  const b = await ctxB.newPage();
+  try {
+    await openBoard(a, TEST_BOARDS.remove);
+    await openBoard(b, TEST_BOARDS.remove);
+
+    // Draw and confirm it reaches B.
+    await drawRect(a, 620, 320);
+    await expect.poll(() => count(b), { timeout: 15_000 }).toBe(1);
+
+    // The freshly drawn shape stays selected; delete it.
+    await a.keyboard.press('Delete');
+
+    // The deletion must propagate (isDeleted), removing it from B's scene.
+    await expect.poll(() => count(a), { timeout: 5_000 }).toBe(0);
+    await expect.poll(() => count(b), { timeout: 15_000 }).toBe(0);
   } finally {
     await ctxA.close();
     await ctxB.close();

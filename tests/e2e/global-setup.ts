@@ -4,7 +4,7 @@ import path from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import { encode } from 'next-auth/jwt';
 
-import { SESSION_COOKIE, STORAGE_STATE, TEST_BOARD_ID, TEST_USER } from './sync.fixtures';
+import { SESSION_COOKIE, STORAGE_STATE, TEST_BOARDS, TEST_USER } from './sync.fixtures';
 
 const SESSION_MAX_AGE = 60 * 60; // 1 hour
 
@@ -37,11 +37,13 @@ async function seedFixtures(): Promise<void> {
       update: { email: TEST_USER.email, name: TEST_USER.name },
       create: { id: TEST_USER.id, email: TEST_USER.email, name: TEST_USER.name },
     });
-    await prisma.board.upsert({
-      where: { id: TEST_BOARD_ID },
-      update: { userId: TEST_USER.id, isPublic: true, title: 'E2E Sync Board' },
-      create: { id: TEST_BOARD_ID, userId: TEST_USER.id, isPublic: true, title: 'E2E Sync Board' },
-    });
+    for (const id of Object.values(TEST_BOARDS)) {
+      await prisma.board.upsert({
+        where: { id },
+        update: { userId: TEST_USER.id, isPublic: true, title: 'E2E Sync Board' },
+        create: { id, userId: TEST_USER.id, isPublic: true, title: 'E2E Sync Board' },
+      });
+    }
   } finally {
     await prisma.$disconnect();
   }
