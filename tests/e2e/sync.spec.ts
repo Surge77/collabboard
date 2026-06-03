@@ -40,16 +40,15 @@ async function openBoard(page: Page, boardId: string): Promise<void> {
   await page.goto(`/board/${boardId}`);
   await page.locator('.excalidraw').waitFor();
   expect(await count(page), 'E2E scene hook must be present').toBeGreaterThanOrEqual(0);
-  // Let the Liveblocks provider finish connecting and load any persisted scene
-  // before we measure the baseline or draw.
+  // Let the Liveblocks provider finish connecting before we draw, so an edit
+  // can't race ahead of the room being joined on both sides.
   await page.waitForTimeout(2_500);
 }
 
 // Time allowed for a change to propagate through Liveblocks to the other client.
 const PROPAGATE = 20_000;
 
-// Assertions are relative to a baseline: the Liveblocks room persists across
-// runs, so these boards accumulate shapes — absolute counts would be brittle.
+// Each run uses fresh empty boards (global-setup), so absolute counts are safe.
 test.describe('canvas realtime sync', () => {
   test.describe.configure({ mode: 'serial' });
 
