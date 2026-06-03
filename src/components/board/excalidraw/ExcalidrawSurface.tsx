@@ -37,6 +37,11 @@ export function ExcalidrawSurface({
       <Excalidraw
         viewModeEnabled={!canEdit}
         excalidrawAPI={(instance) => {
+          // Test-only handle for the sync E2E to read the scene. Gated by an
+          // env flag so it never ships in a normal build.
+          if (process.env.NEXT_PUBLIC_E2E_HOOKS === '1') {
+            (window as unknown as { __exApi?: ExcalidrawImperativeAPI }).__exApi = instance;
+          }
           setApi(instance);
           onApi?.(instance);
         }}

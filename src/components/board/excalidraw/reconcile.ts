@@ -1,7 +1,10 @@
-interface VersionedElement {
+interface SyncableElement {
   id: string;
   version: number;
   versionNonce: number;
+  width: number;
+  height: number;
+  isDeleted: boolean;
 }
 
 interface RemoteMeta {
@@ -9,45 +12,34 @@ interface RemoteMeta {
   versionNonce: number;
 }
 
-interface Reconciliation<T> {
-  toSet: T[];
-  toDelete: string[];
-}
-
 /**
- * Pure reconciliation between the local Excalidraw scene and the shared Yjs
- * document. Local elements that are absent from, or differ from, the doc are
- * written; doc entries no longer present locally are tombstoned.
+ * Picks the local Excalidraw elements that should be written to the shared Yjs
+ * document: those new to, or changed from, the doc.
  *
- * Change is detected via `versionNonce`, NOT `version` alone: Excalidraw does
- * not monotonically bump `version` during an in-progress drag (the geometry
- * grows while `version` stays constant), so a "strictly newer version" rule
- * drops every frame after the initial 0x0 one and persists an invisible
- * element. `versionNonce` changes on every mutation, so it reliably flags a
- * real local edit.
+ * Two hard-won rules:
+ *  - Change is detected via version AND versionNonce. Excalidraw bumps both on
+ *    every mutation but does NOT increase `version` monotonically during an
+ *    in-progress drag, so a version-only check would drop geometry updates.
+ *  - Zero-size, not-yet-deleted elements are skipped — they are in-progress
+ *    drag drafts that Excalidraw discards on the receiving side, and persisting
+ *    them pollutes the doc with invisible 0x0 shapes.
  *
- * Kept free of Yjs/React so the merge rule — the one piece of sync that cannot
- * be runtime-verified without two live clients — is unit-testable in isolation.
+ * Deletions are intentionally NOT inferred from absence. Excalidraw keeps
+ * deleted elements in the scene with `isDeleted: true`, so they propagate as
+ * ordinary updates; inferring deletes from a transient onChange array makes two
+ * editors delete each other's elements.
  */
-export function reconcileElements<T extends VersionedElement>(
+export function elementsToSync<T extends SyncableElement>(
   localElements: readonly T[],
   remote: ReadonlyMap<string, RemoteMeta>
-): Reconciliation<T> {
-  const toSet: T[] = [];
-  const seen = new Set<string>();
-
+): T[] {
+  const out: T[] = [];
   for (const el of localElements) {
-    seen.add(el.id);
+    if (!el.isDeleted && el.width === 0 && el.height === 0) continue;
     const r = remote.get(el.id);
     if (!r || r.version !== el.version || r.versionNonce !== el.versionNonce) {
-      toSet.push(el);
+      out.push(el);
     }
   }
-
-  const toDelete: string[] = [];
-  for (const id of remote.keys()) {
-    if (!seen.has(id)) toDelete.push(id);
-  }
-
-  return { toSet, toDelete };
+  return out;
 }

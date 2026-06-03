@@ -1,77 +1,62 @@
 import { describe, expect, it } from 'vitest';
 
-import { reconcileElements } from '@/components/board/excalidraw/reconcile';
+import { elementsToSync } from '@/components/board/excalidraw/reconcile';
 
 interface El {
   id: string;
   version: number;
   versionNonce: number;
+  width: number;
+  height: number;
+  isDeleted: boolean;
 }
 
-const el = (id: string, version: number, versionNonce: number): El => ({
-  id,
-  version,
-  versionNonce,
-});
+function el(id: string, version: number, versionNonce: number, over: Partial<El> = {}): El {
+  return { id, version, versionNonce, width: 100, height: 80, isDeleted: false, ...over };
+}
+
 const remote = (
   ...rows: [string, number, number][]
 ): Map<string, { version: number; versionNonce: number }> =>
   new Map(rows.map(([id, version, versionNonce]) => [id, { version, versionNonce }]));
 
-describe('reconcileElements', () => {
-  it('writes a new element absent from the doc', () => {
-    const result = reconcileElements([el('a', 1, 10)], remote());
-    expect(result.toSet).toEqual([el('a', 1, 10)]);
-    expect(result.toDelete).toEqual([]);
+describe('elementsToSync', () => {
+  it('includes an element absent from the doc', () => {
+    expect(elementsToSync([el('a', 1, 10)], remote())).toEqual([el('a', 1, 10)]);
   });
 
-  it('writes a local element whose versionNonce changed at the same version', () => {
-    // The drag bug: geometry mutates while version stays constant.
-    const result = reconcileElements([el('a', 2, 99)], remote(['a', 2, 10]));
-    expect(result.toSet).toEqual([el('a', 2, 99)]);
-    expect(result.toDelete).toEqual([]);
+  it('includes an element whose versionNonce changed at the same version (drag)', () => {
+    expect(elementsToSync([el('a', 2, 99)], remote(['a', 2, 10]))).toEqual([el('a', 2, 99)]);
   });
 
-  it('writes a local element with a newer version', () => {
-    const result = reconcileElements([el('a', 5, 10)], remote(['a', 3, 10]));
-    expect(result.toSet).toEqual([el('a', 5, 10)]);
-    expect(result.toDelete).toEqual([]);
+  it('includes an element with a newer version', () => {
+    expect(elementsToSync([el('a', 5, 10)], remote(['a', 3, 10]))).toEqual([el('a', 5, 10)]);
   });
 
-  it('skips a local element identical to the doc (same version and nonce)', () => {
-    const result = reconcileElements([el('a', 3, 77)], remote(['a', 3, 77]));
-    expect(result.toSet).toEqual([]);
-    expect(result.toDelete).toEqual([]);
+  it('excludes an element identical to the doc', () => {
+    expect(elementsToSync([el('a', 3, 77)], remote(['a', 3, 77]))).toEqual([]);
   });
 
-  it('tombstones a doc element no longer present locally', () => {
-    const result = reconcileElements([], remote(['a', 1, 10]));
-    expect(result.toSet).toEqual([]);
-    expect(result.toDelete).toEqual(['a']);
+  it('excludes a zero-size in-progress draft', () => {
+    const draft = el('a', 1, 10, { width: 0, height: 0 });
+    expect(elementsToSync([draft], remote())).toEqual([]);
   });
 
-  it('handles mixed set, skip, and delete in one pass', () => {
-    const result = reconcileElements(
-      [el('new', 1, 1), el('changed', 2, 99), el('same', 1, 5)],
-      remote(['changed', 2, 4], ['same', 1, 5], ['gone', 2, 3])
-    );
-    expect(result.toSet).toEqual([el('new', 1, 1), el('changed', 2, 99)]);
-    expect(result.toDelete).toEqual(['gone']);
+  it('includes a deleted element even when zero-size (so deletion propagates)', () => {
+    const removed = el('a', 4, 12, { width: 0, height: 0, isDeleted: true });
+    expect(elementsToSync([removed], remote(['a', 3, 11]))).toEqual([removed]);
   });
 
-  it('is a no-op when local and doc match exactly', () => {
-    const result = reconcileElements(
-      [el('a', 1, 11), el('b', 2, 22)],
-      remote(['a', 1, 11], ['b', 2, 22])
-    );
-    expect(result.toSet).toEqual([]);
-    expect(result.toDelete).toEqual([]);
+  it('never removes doc entries that are absent locally', () => {
+    // A transient local set missing an element must not signal a delete.
+    const result = elementsToSync([el('a', 1, 1)], remote(['a', 1, 1], ['b', 1, 1]));
+    expect(result).toEqual([]);
   });
 
   it('does not mutate its inputs', () => {
     const local = [el('a', 1, 1)];
     const doc = remote(['b', 1, 1]);
-    reconcileElements(local, doc);
+    elementsToSync(local, doc);
     expect(local).toEqual([el('a', 1, 1)]);
     expect([...doc.keys()]).toEqual(['b']);
   });

@@ -6,7 +6,7 @@ import { getYjsProviderForRoom } from '@liveblocks/yjs';
 import type * as Y from 'yjs';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 
-import { reconcileElements } from '@/components/board/excalidraw/reconcile';
+import { elementsToSync } from '@/components/board/excalidraw/reconcile';
 
 // Types derived from the imperative API to avoid Excalidraw's deep internal
 // import paths (which move between minor versions).
@@ -33,7 +33,7 @@ const LOCAL_ORIGIN = 'excalidraw-local';
 const Y_ELEMENTS_KEY = 'excalidraw-elements';
 
 interface SyncHandlers {
-  onChange: (elements: readonly Element[]) => void;
+  onChange: () => void;
   onPointerUpdate: (payload: { pointer: { x: number; y: number } | null }) => void;
 }
 
@@ -119,18 +119,22 @@ export function useExcalidrawSync({ api, user, canEdit }: UseExcalidrawSyncArgs)
   }, [api, awareness, yDoc, user.id, user.name, user.color]);
 
   // === DOCUMENT: Excalidraw -> Yjs (editors only) =========================
-  const onChange = (elements: readonly Element[]) => {
-    if (!canEdit || applyingRemote.current) return;
+  const onChange = () => {
+    if (!canEdit || applyingRemote.current || !api) return;
+    // Pull the authoritative set (including soft-deleted elements) rather than
+    // trusting the onChange argument, which during a drag can contain only the
+    // in-progress element and would otherwise look like everything else was
+    // removed.
+    const elements = api.getSceneElementsIncludingDeleted();
     const remote = new Map<string, { version: number; versionNonce: number }>();
     for (const id of yElements.keys()) {
       const el = yElements.get(id)!;
       remote.set(id, { version: el.version, versionNonce: el.versionNonce });
     }
-    const { toSet, toDelete } = reconcileElements(elements, remote);
-    if (toSet.length === 0 && toDelete.length === 0) return;
+    const toSet = elementsToSync(elements, remote);
+    if (toSet.length === 0) return;
     yDoc.transact(() => {
       for (const el of toSet) yElements.set(el.id, el);
-      for (const id of toDelete) yElements.delete(id);
     }, LOCAL_ORIGIN);
   };
 
