@@ -33,6 +33,7 @@ export function ExcalidrawAiPanel({ boardId }: { boardId: string }) {
   const api = useExcalidrawApi();
   const [prompt, setPrompt] = useState('');
   const [busy, setBusy] = useState<Busy>('idle');
+  const [open, setOpen] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,42 +114,58 @@ export function ExcalidrawAiPanel({ boardId }: { boardId: string }) {
   }
 
   return (
-    <div className="pointer-events-auto absolute top-20 right-3 z-[300] flex w-72 flex-col gap-2 rounded-xl border border-black/10 bg-white/95 p-3 shadow-lg backdrop-blur">
-      <label className="text-xs font-semibold text-neutral-700">AI diagram</label>
-      <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Describe a diagram to generate…"
-        rows={3}
-        className="resize-none rounded-md border border-black/15 px-2 py-1 text-sm text-neutral-900 outline-none focus:border-black/40"
-      />
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={generate}
-          disabled={busy !== 'idle' || !prompt.trim()}
-          className="flex-1 rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
-        >
-          {busy === 'generating' ? 'Generating…' : 'Generate'}
-        </button>
-        <button
-          type="button"
-          onClick={analyze}
-          disabled={busy !== 'idle'}
-          className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-neutral-700 disabled:opacity-40"
-        >
-          {busy === 'analyzing' ? 'Analyzing…' : 'Analyze'}
-        </button>
-      </div>
-      {error ? (
-        <p role="alert" className="text-xs text-red-600">
-          {error}
-        </p>
-      ) : null}
-      {summary !== null && !error ? (
-        <p className="max-h-32 overflow-auto text-xs whitespace-pre-wrap text-neutral-700">
-          {summary || 'Analyzing…'}
-        </p>
+    <div
+      className={`pointer-events-auto absolute top-16 right-3 z-[300] flex flex-col gap-2 rounded-xl border border-black/10 bg-white/95 p-2 shadow-lg backdrop-blur ${open ? 'w-72 p-3' : ''}`}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex items-center gap-2 px-1 text-xs font-semibold text-neutral-700"
+      >
+        <span>✨ AI diagram</span>
+        <span aria-hidden className="ml-auto text-neutral-400">
+          {open ? '−' : '+'}
+        </span>
+      </button>
+      {open ? (
+        <>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Describe a diagram to generate…"
+            rows={3}
+            className="resize-none rounded-md border border-black/15 px-2 py-1 text-sm text-neutral-900 outline-none focus:border-black/40"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={generate}
+              disabled={busy !== 'idle' || !prompt.trim()}
+              className="flex-1 rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+            >
+              {busy === 'generating' ? 'Generating…' : 'Generate'}
+            </button>
+            <button
+              type="button"
+              onClick={analyze}
+              disabled={busy !== 'idle'}
+              className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-neutral-700 disabled:opacity-40"
+            >
+              {busy === 'analyzing' ? 'Analyzing…' : 'Analyze'}
+            </button>
+          </div>
+          {error ? (
+            <p role="alert" className="text-xs text-red-600">
+              {error}
+            </p>
+          ) : null}
+          {summary !== null && !error ? (
+            <p className="max-h-32 overflow-auto text-xs whitespace-pre-wrap text-neutral-700">
+              {summary || 'Analyzing…'}
+            </p>
+          ) : null}
+        </>
       ) : null}
     </div>
   );
