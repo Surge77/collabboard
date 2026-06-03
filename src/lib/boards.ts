@@ -78,6 +78,23 @@ export async function getViewableBoard(
   return { board: toSummary(board), role };
 }
 
+// Suffix appended to a duplicated board's title so the copy is distinguishable
+// in the dashboard list.
+const COPY_SUFFIX = ' (Copy)';
+
+// Clones the owner's board row into a fresh private board. The canvas (Yjs room)
+// is copied separately and best-effort by the caller; this only owns the DB row.
+// A non-owner or missing source yields null (-> 404), never a copy.
+export async function duplicateBoard(id: string, userId: string): Promise<BoardSummary | null> {
+  const source = await db.board.findFirst({ where: { id, userId } });
+  if (!source) return null;
+
+  const copy = await db.board.create({
+    data: { userId, title: `${source.title}${COPY_SUFFIX}` },
+  });
+  return toSummary(copy);
+}
+
 export async function deleteBoard(id: string, userId: string): Promise<boolean> {
   // deleteMany scoped by userId enforces ownership atomically; count tells us
   // whether anything matched without a separate existence query.

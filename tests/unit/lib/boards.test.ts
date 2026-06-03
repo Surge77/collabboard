@@ -17,6 +17,7 @@ import { db } from '@/lib/db';
 import {
   createBoard,
   deleteBoard,
+  duplicateBoard,
   getBoard,
   getViewableBoard,
   listBoards,
@@ -131,6 +132,29 @@ describe('getViewableBoard', () => {
     expect(mockDb.board.findFirst).toHaveBeenCalledWith({
       where: { id: 'b1', OR: [{ userId: 'someone-else' }, { isPublic: true }] },
     });
+  });
+});
+
+describe('duplicateBoard', () => {
+  it('clones an owned board into a fresh private "(Copy)"', async () => {
+    mockDb.board.findFirst.mockResolvedValue(board);
+    mockDb.board.create.mockResolvedValue({ ...board, id: 'b2', title: 'My board (Copy)' });
+    const result = await duplicateBoard('b1', 'u1');
+    expect(mockDb.board.findFirst).toHaveBeenCalledWith({
+      where: { id: 'b1', userId: 'u1' },
+    });
+    expect(mockDb.board.create).toHaveBeenCalledWith({
+      data: { userId: 'u1', title: 'My board (Copy)' },
+    });
+    expect(result?.id).toBe('b2');
+    expect(result?.title).toBe('My board (Copy)');
+  });
+
+  it('returns null and never creates when the source is not owned', async () => {
+    mockDb.board.findFirst.mockResolvedValue(null);
+    const result = await duplicateBoard('b1', 'intruder');
+    expect(result).toBeNull();
+    expect(mockDb.board.create).not.toHaveBeenCalled();
   });
 });
 
