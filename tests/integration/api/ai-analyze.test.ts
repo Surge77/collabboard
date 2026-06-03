@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }));
 vi.mock('@/lib/boards', () => ({ getBoard: vi.fn() }));
-vi.mock('@/lib/rate-limit', () => ({ rateLimit: vi.fn(() => true) }));
+vi.mock('@/lib/rate-limit', () => ({ rateLimit: vi.fn(async () => true) }));
 vi.mock('ai', () => ({
   streamText: vi.fn(() => ({
     toTextStreamResponse: () => new Response('summary', { status: 200 }),
@@ -33,7 +33,7 @@ function signedIn() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(rateLimit).mockReturnValue(true);
+  vi.mocked(rateLimit).mockResolvedValue(true);
   vi.stubEnv('GOOGLE_GENERATIVE_AI_API_KEY', 'test-key');
 });
 
@@ -49,7 +49,7 @@ describe('POST /api/ai/analyze', () => {
 
   it('returns 429 when rate limited', async () => {
     signedIn();
-    vi.mocked(rateLimit).mockReturnValue(false);
+    vi.mocked(rateLimit).mockResolvedValue(false);
     expect((await POST(req({ boardId: CUID, shapes: [] }))).status).toBe(429);
   });
 

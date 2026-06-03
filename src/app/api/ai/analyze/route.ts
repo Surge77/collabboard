@@ -19,11 +19,13 @@ export async function POST(request: Request) {
     return apiError('UNAUTHORIZED', 'Sign in to use AI', 401);
   }
 
-  // Shared budget across all AI endpoints, then a per-endpoint sub-budget.
-  if (
-    !rateLimit(`ai:${session.user.id}`, AI_GLOBAL_LIMIT, WINDOW_MS) ||
-    !rateLimit(`ai:analyze:${session.user.id}`, RATE_LIMIT, WINDOW_MS)
-  ) {
+  // Per-endpoint sub-budget first, then the shared cross-endpoint budget — the
+  // global counter is only consumed when the per-endpoint check passes, so denied
+  // requests do not drain the shared quota.
+  const endpointOk = await rateLimit(`ai:analyze:${session.user.id}`, RATE_LIMIT, WINDOW_MS);
+  const globalOk =
+    endpointOk && (await rateLimit(`ai:${session.user.id}`, AI_GLOBAL_LIMIT, WINDOW_MS));
+  if (!endpointOk || !globalOk) {
     return apiError('RATE_LIMITED', 'Too many requests — slow down', 429);
   }
 
