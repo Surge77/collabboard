@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useSelf } from '@liveblocks/react/suspense';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 
+import { ExcalidrawAvatars } from '@/components/board/excalidraw/ExcalidrawAvatars';
 import { ExcalidrawSurface } from '@/components/board/excalidraw/ExcalidrawSurface';
 import { useExcalidrawSync } from '@/components/board/excalidraw/useExcalidrawSync';
 
@@ -27,12 +28,15 @@ export function CollabExcalidrawCanvas({ boardId, canEdit }: CollabExcalidrawCan
   });
 
   return (
-    <ExcalidrawSurface
-      boardId={boardId}
-      canEdit={canEdit}
-      onApi={setApi}
-      onChange={onChange}
-      onPointerUpdate={onPointerUpdate}
-    />
+    <>
+      <ExcalidrawSurface
+        boardId={boardId}
+        canEdit={canEdit}
+        onApi={setApi}
+        onChange={onChange}
+        onPointerUpdate={onPointerUpdate}
+      />
+      <ExcalidrawAvatars />
+    </>
   );
 }

@@ -6,6 +6,8 @@ import { getYjsProviderForRoom } from '@liveblocks/yjs';
 import type * as Y from 'yjs';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 
+import { reconcileElements } from '@/components/board/excalidraw/reconcile';
+
 // Types derived from the imperative API to avoid Excalidraw's deep internal
 // import paths (which move between minor versions).
 type SceneData = Parameters<ExcalidrawImperativeAPI['updateScene']>[0];
@@ -119,21 +121,15 @@ export function useExcalidrawSync({ api, user, canEdit }: UseExcalidrawSyncArgs)
   // === DOCUMENT: Excalidraw -> Yjs (editors only) =========================
   const onChange = (elements: readonly Element[]) => {
     if (!canEdit || applyingRemote.current) return;
+    const remoteVersions = new Map<string, number>();
+    for (const id of yElements.keys()) {
+      remoteVersions.set(id, yElements.get(id)!.version);
+    }
+    const { toSet, toDelete } = reconcileElements(elements, remoteVersions);
+    if (toSet.length === 0 && toDelete.length === 0) return;
     yDoc.transact(() => {
-      const seen = new Set<string>();
-      for (const el of elements) {
-        seen.add(el.id);
-        const existing = yElements.get(el.id);
-        // version-wins: only write when this edit is newer than what's stored.
-        if (!existing || existing.version < el.version) {
-          yElements.set(el.id, el);
-        }
-      }
-      // Elements dropped entirely (Excalidraw usually soft-deletes via
-      // isDeleted, but guard hard removals too) get pruned from the doc.
-      for (const id of yElements.keys()) {
-        if (!seen.has(id)) yElements.delete(id);
-      }
+      for (const el of toSet) yElements.set(el.id, el);
+      for (const id of toDelete) yElements.delete(id);
     }, LOCAL_ORIGIN);
   };
 
