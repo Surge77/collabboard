@@ -11,12 +11,12 @@ export const TEST_USER = {
   name: 'E2E Sync',
 };
 
-// One board (room) per test so parallel specs don't share Yjs state.
-export const TEST_BOARDS = {
-  draw: 'ce2esyncdraw00000000000001',
-  multi: 'ce2esyncmulti0000000000001',
-  remove: 'ce2esyncremove000000000001',
-} as const;
+export type BoardKey = 'draw' | 'multi' | 'remove';
+
+// global-setup generates a fresh random board id per key each run and writes
+// them here, so every run starts from an empty Liveblocks room (no shapes
+// accumulating across runs) and the spec can use absolute counts.
+export const BOARDS_FILE = path.join(dir, '.auth', 'boards.json');
 
 // Auth.js v5 names the session cookie `authjs.session-token` on non-HTTPS
 // origins; this value is also the encryption salt.

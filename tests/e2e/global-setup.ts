@@ -1,10 +1,20 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
 import { PrismaClient } from '@prisma/client';
 import { encode } from 'next-auth/jwt';
 
-import { SESSION_COOKIE, STORAGE_STATE, TEST_BOARDS, TEST_USER } from './sync.fixtures';
+import {
+  BOARDS_FILE,
+  type BoardKey,
+  SESSION_COOKIE,
+  STORAGE_STATE,
+  TEST_USER,
+} from './sync.fixtures';
+
+// cuid-shaped id (matches the room-id guard /^c[a-z0-9]{20,}$/i), unique per run.
+const freshBoardId = (): string => `c${crypto.randomBytes(16).toString('hex')}`;
 
 const SESSION_MAX_AGE = 60 * 60; // 1 hour
 
@@ -37,13 +47,18 @@ async function seedFixtures(): Promise<void> {
       update: { email: TEST_USER.email, name: TEST_USER.name },
       create: { id: TEST_USER.id, email: TEST_USER.email, name: TEST_USER.name },
     });
-    for (const id of Object.values(TEST_BOARDS)) {
-      await prisma.board.upsert({
-        where: { id },
-        update: { userId: TEST_USER.id, isPublic: true, title: 'E2E Sync Board' },
-        create: { id, userId: TEST_USER.id, isPublic: true, title: 'E2E Sync Board' },
+    const boards: Record<BoardKey, string> = {
+      draw: freshBoardId(),
+      multi: freshBoardId(),
+      remove: freshBoardId(),
+    };
+    for (const id of Object.values(boards)) {
+      await prisma.board.create({
+        data: { id, userId: TEST_USER.id, isPublic: true, title: 'E2E Sync Board' },
       });
     }
+    fs.mkdirSync(path.dirname(BOARDS_FILE), { recursive: true });
+    fs.writeFileSync(BOARDS_FILE, JSON.stringify(boards, null, 2));
   } finally {
     await prisma.$disconnect();
   }
