@@ -115,7 +115,7 @@ export function ExcalidrawAiPanel({ boardId }: { boardId: string }) {
 
   return (
     <div
-      className={`pointer-events-auto absolute top-16 right-3 z-[300] flex flex-col gap-2 rounded-xl border border-black/10 bg-white/95 p-2 shadow-lg backdrop-blur ${open ? 'w-72 p-3' : ''}`}
+      className={`pointer-events-auto absolute top-3 left-16 z-[300] flex flex-col gap-2 rounded-xl border border-black/10 bg-white/95 p-2 shadow-lg backdrop-blur ${open ? 'w-72 p-3' : ''}`}
     >
       <button
         type="button"
