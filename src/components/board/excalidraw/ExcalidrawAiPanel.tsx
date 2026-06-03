@@ -113,7 +113,7 @@ export function ExcalidrawAiPanel({ boardId }: { boardId: string }) {
   }
 
   return (
-    <div className="pointer-events-auto absolute top-3 left-3 z-[300] flex w-72 flex-col gap-2 rounded-xl border border-black/10 bg-white/95 p-3 shadow-lg backdrop-blur">
+    <div className="pointer-events-auto absolute top-20 right-3 z-[300] flex w-72 flex-col gap-2 rounded-xl border border-black/10 bg-white/95 p-3 shadow-lg backdrop-blur">
       <label className="text-xs font-semibold text-neutral-700">AI diagram</label>
       <textarea
         value={prompt}
