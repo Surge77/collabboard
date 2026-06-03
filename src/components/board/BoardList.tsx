@@ -86,6 +86,24 @@ export function BoardList({ initialBoards }: BoardListProps) {
     }
   }
 
+  async function duplicateBoard(id: string) {
+    setError(null);
+    markPending(id, true);
+    try {
+      const res = await fetch(`/api/boards/${id}/duplicate`, { method: 'POST' });
+      if (!res.ok) {
+        setError(await readError(res));
+        return;
+      }
+      const { data } = (await res.json()) as { data: BoardSummary };
+      setBoards((prev) => [data, ...prev]);
+    } catch {
+      setError('Something went wrong');
+    } finally {
+      markPending(id, false);
+    }
+  }
+
   async function deleteBoard(id: string) {
     setError(null);
     // Capture only the removed item + its position; re-insert it on failure so a
@@ -144,6 +162,7 @@ export function BoardList({ initialBoards }: BoardListProps) {
               board={board}
               isPending={pendingIds.has(board.id)}
               onRename={renameBoard}
+              onDuplicate={duplicateBoard}
               onDelete={deleteBoard}
             />
           ))}
