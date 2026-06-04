@@ -10,9 +10,27 @@ summarize what's on the board, and collaborate with live cursors.
 [![CI](https://github.com/Surge77/collabboard/actions/workflows/ci.yml/badge.svg)](https://github.com/Surge77/collabboard/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
+**You are on the `excalidraw` variant.**
+[Live demo → collabboard-excalidraw.vercel.app](https://collabboard-excalidraw.vercel.app)
+
 </div>
 
 ---
+
+## Live deployments
+
+CollabBoard ships in two canvas variants, deployed independently on Vercel from
+this repo. They share the same auth, database, Liveblocks real-time layer, and AI
+features — only the canvas engine differs.
+
+| Variant | Canvas | Live URL | Branch | Vercel project |
+| ------- | ------ | -------- | ------ | -------------- |
+| **Excalidraw** _(this branch — MIT, no watermark)_ | [Excalidraw](https://github.com/excalidraw/excalidraw) | <https://collabboard-excalidraw.vercel.app> | `spike/excalidraw-v2` | `collabboard-excalidraw` |
+| tldraw _(original)_ | [tldraw](https://tldraw.dev) (BSL) | <https://collaborative-whiteboard-ai.vercel.app> | `main` / `develop` | `collaborative-whiteboard-ai` |
+
+The Excalidraw variant exists because tldraw's Business Source License restricts
+commercial whiteboard products and its free tier renders a watermark — Excalidraw
+is MIT with neither limitation.
 
 ## Features
 
@@ -25,8 +43,9 @@ summarize what's on the board, and collaborate with live cursors.
 - 🔐 OAuth authentication and persistent boards
 - 📤 Export to PNG / PDF
 
-> Status: **Phase 0 complete** — foundation, auth, database, CI. See
-> [`docs/roadmap.md`](./docs/roadmap.md) for the full plan.
+> Status: **feature-complete Excalidraw port** — render, export (PNG/SVG/PDF),
+> AI generate + analyze, and real-time multi-client sync are all working and
+> covered by unit + two-client E2E tests. See [`docs/roadmap.md`](./docs/roadmap.md).
 
 ## Tech stack
 
@@ -37,7 +56,7 @@ summarize what's on the board, and collaborate with live cursors.
 | Styling      | Tailwind CSS v4 + shadcn/ui              |
 | Auth         | Auth.js v5 (Google + GitHub OAuth)       |
 | Database     | Neon PostgreSQL + Prisma 6               |
-| Canvas       | tldraw                                   |
+| Canvas       | Excalidraw (MIT)                         |
 | Real-time    | Liveblocks (CRDT, presence, storage)     |
 | AI           | Vercel AI SDK + Google Gemini            |
 | Testing      | Vitest + Playwright                      |
@@ -73,8 +92,8 @@ lint, type-check, and tests.
 
 ## Licensing note
 
-This project's own code is MIT (see [LICENSE](./LICENSE)). It depends on
-[**tldraw**](https://github.com/tldraw/tldraw/blob/main/LICENSE.md), which ships
-under a **Business Source License** restricting commercial whiteboard products.
-That is fine for this portfolio project; review tldraw's license before any
-commercial use.
+This project's own code is MIT (see [LICENSE](./LICENSE)). This variant uses
+[**Excalidraw**](https://github.com/excalidraw/excalidraw), which is also **MIT
+licensed** — no commercial restriction and no watermark. This is the key reason
+this variant exists alongside the original tldraw build (tldraw ships under a
+Business Source License that restricts commercial whiteboard products).

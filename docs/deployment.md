@@ -1,5 +1,19 @@
 # Deployment (Vercel)
 
+## Live deployments (two variants)
+
+This repo deploys as **two independent Vercel projects** from two branches. They
+share auth, database, Liveblocks, and AI — only the canvas engine differs.
+
+| Variant | Live URL | Branch | Vercel project | Production branch |
+| ------- | -------- | ------ | -------------- | ----------------- |
+| Excalidraw (MIT, no watermark) | <https://collabboard-excalidraw.vercel.app> | `spike/excalidraw-v2` | `collabboard-excalidraw` | `spike/excalidraw-v2` |
+| tldraw (original) | <https://collaborative-whiteboard-ai.vercel.app> | `main` / `develop` | `collaborative-whiteboard-ai` | `main` |
+
+Both projects are Git-connected to `Surge77/collabboard`. A push to a project's
+production branch auto-deploys that project. The two projects keep separate
+environment variables (same values, set per project).
+
 ## One-time setup
 
 1. Push the repo to GitHub (done).
