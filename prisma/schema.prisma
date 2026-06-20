@@ -67,16 +67,41 @@ model VerificationToken {
 // ─── Application models ──────────────────────────────────────────────────────
 
 model Board {
-  id        String         @id @default(cuid())
-  title     String         @default("Untitled Board")
-  userId    String
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  isPublic  Boolean        @default(false)
-  snapshot  BoardSnapshot?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id         String         @id @default(cuid())
+  title      String         @default("Untitled Board")
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isPublic   Boolean        @default(false)
+  snapshot   BoardSnapshot?
+  shareLinks ShareLink[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   @@index([userId])
+}
+
+// Role granted to a visitor. The board owner (Board.userId) always has full
+// control and is not represented here.
+enum ShareRole {
+  VIEWER
+  EDITOR
+}
+
+// Unguessable, revocable, optionally-expiring capability link to a board. Replaces
+// the permanent guessable board-cuid URL as the secure sharing primitive; the
+// legacy `Board.isPublic` flag still grants read-only access on its own.
+model ShareLink {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  boardId     String
+  board       Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  role        ShareRole @default(VIEWER)
+  createdById String
+  expiresAt   DateTime?
+  revoked     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([boardId])
 }
 
 // Durable backstop for a board's canvas. The live canvas lives only in the
