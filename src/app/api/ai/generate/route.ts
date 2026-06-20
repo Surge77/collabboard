@@ -4,8 +4,9 @@ import { buildGeneratePrompt, getGeminiModel } from '@/lib/ai';
 import { apiError, apiSuccess } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { getBoard } from '@/lib/boards';
+import { layoutDiagram } from '@/lib/diagram-layout';
 import { rateLimit } from '@/lib/rate-limit';
-import { aiShapesSchema, generateInputSchema } from '@/lib/validations/ai';
+import { aiGraphSchema, generateInputSchema } from '@/lib/validations/ai';
 import { flattenFieldErrors } from '@/lib/zod-errors';
 
 const RATE_LIMIT = 10;
@@ -48,11 +49,11 @@ export async function POST(request: Request) {
   try {
     const { object } = await generateObject({
       model,
-      schema: aiShapesSchema,
+      schema: aiGraphSchema,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       prompt: buildGeneratePrompt(parsed.data.prompt),
     });
-    return apiSuccess(object.shapes);
+    return apiSuccess(layoutDiagram(object));
   } catch {
     return apiError('INTERNAL_ERROR', 'AI request failed', 500);
   }

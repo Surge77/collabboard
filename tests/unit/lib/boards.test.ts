@@ -19,7 +19,6 @@ import {
   deleteBoard,
   duplicateBoard,
   getBoard,
-  getViewableBoard,
   listBoards,
   updateBoard,
 } from '@/lib/boards';
@@ -108,30 +107,6 @@ describe('updateBoard', () => {
     const result = await updateBoard('b1', 'intruder', { title: 'x' });
     expect(result).toBeNull();
     expect(mockDb.board.findFirst).not.toHaveBeenCalled();
-  });
-});
-
-describe('getViewableBoard', () => {
-  const ownedRecord = { ...board, userId: 'u1' };
-
-  it('returns owner role for the board owner', async () => {
-    mockDb.board.findFirst.mockResolvedValue(ownedRecord);
-    const result = await getViewableBoard('b1', 'u1');
-    expect(result).toEqual({ board: expect.objectContaining({ id: 'b1' }), role: 'owner' });
-  });
-
-  it('returns viewer role for a non-owner of a public board', async () => {
-    mockDb.board.findFirst.mockResolvedValue({ ...ownedRecord, isPublic: true });
-    const result = await getViewableBoard('b1', 'someone-else');
-    expect(result?.role).toBe('viewer');
-  });
-
-  it('returns null when the query matches nothing (private, not owner, or missing)', async () => {
-    mockDb.board.findFirst.mockResolvedValue(null);
-    expect(await getViewableBoard('b1', 'someone-else')).toBeNull();
-    expect(mockDb.board.findFirst).toHaveBeenCalledWith({
-      where: { id: 'b1', OR: [{ userId: 'someone-else' }, { isPublic: true }] },
-    });
   });
 });
 

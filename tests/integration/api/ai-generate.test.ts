@@ -5,7 +5,14 @@ vi.mock('@/lib/boards', () => ({ getBoard: vi.fn() }));
 vi.mock('@/lib/rate-limit', () => ({ rateLimit: vi.fn(async () => true) }));
 vi.mock('ai', () => ({
   generateObject: vi.fn(async () => ({
-    object: { shapes: [{ type: 'rectangle', x: 0, y: 0 }] },
+    object: {
+      nodes: [
+        { id: 'n1', type: 'rectangle', text: 'Start' },
+        { id: 'n2', type: 'diamond', text: 'Decision' },
+      ],
+      edges: [{ from: 'n1', to: 'n2' }],
+      direction: 'down',
+    },
   })),
 }));
 
@@ -65,7 +72,7 @@ describe('POST /api/ai/generate', () => {
     expect(generateObject).not.toHaveBeenCalled();
   });
 
-  it('returns generated shapes for an owned board', async () => {
+  it('returns a positioned diagram for an owned board', async () => {
     signedIn();
     vi.mocked(getBoard).mockResolvedValue({
       id: CUID,
@@ -77,7 +84,28 @@ describe('POST /api/ai/generate', () => {
     const res = await POST(req({ boardId: CUID, prompt: 'draw a flow' }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data).toEqual([{ type: 'rectangle', x: 0, y: 0 }]);
+    // The route runs the model graph through dagre layout before returning.
+    expect(body.data.nodes.n1.type).toBe('rectangle');
+    expect(body.data.nodes.n2.type).toBe('diamond');
+    expect(typeof body.data.nodes.n1.x).toBe('number');
+    expect(typeof body.data.nodes.n1.y).toBe('number');
+    expect(body.data.edges).toEqual([{ from: 'n1', to: 'n2' }]);
     expect(generateObject).toHaveBeenCalledOnce();
+  });
+
+  it('returns 500 when the model call fails', async () => {
+    signedIn();
+    vi.mocked(getBoard).mockResolvedValue({
+      id: CUID,
+      title: 'B',
+      isPublic: false,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    vi.mocked(generateObject).mockRejectedValueOnce(new Error('quota exceeded'));
+    const res = await POST(req({ boardId: CUID, prompt: 'draw a flow' }));
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error.code).toBe('INTERNAL_ERROR');
   });
 });
