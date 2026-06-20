@@ -2,12 +2,10 @@
 
 import { useState } from 'react';
 import { createShapeId, renderPlaintextFromRichText, toRichText, useEditor } from 'tldraw';
-import type { Editor, TLShape } from 'tldraw';
+import type { Editor, TLShape, TLShapeId } from 'tldraw';
 
-import type { AiShape } from '@/lib/validations/ai';
+import type { DiagramLayout } from '@/lib/diagram-layout';
 
-const DEFAULT_W = 160;
-const DEFAULT_H = 90;
 const MAX_ANALYZE_SHAPES = 500;
 // Matches `analyzeShapeSchema.text` max length so the request never 422s.
 const MAX_SHAPE_TEXT = 200;
@@ -18,6 +16,15 @@ function shapeText(editor: Editor, shape: TLShape): string | undefined {
   if (!('richText' in shape.props) || !shape.props.richText) return undefined;
   const text = renderPlaintextFromRichText(editor, shape.props.richText).trim();
   return text ? text.slice(0, MAX_SHAPE_TEXT) : undefined;
+}
+
+function bindTerminal(arrowId: TLShapeId, toId: TLShapeId, terminal: 'start' | 'end') {
+  return {
+    fromId: arrowId,
+    toId,
+    type: 'arrow' as const,
+    props: { terminal, normalizedAnchor: { x: 0.5, y: 0.5 }, isExact: false, isPrecise: false },
+  };
 }
 
 async function readError(res: Response): Promise<string> {
@@ -45,22 +52,55 @@ export function AiPanel({ boardId }: { boardId: string }) {
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function applyShapes(shapes: AiShape[]) {
-    if (shapes.length === 0) return;
+  function applyDiagram(diagram: DiagramLayout) {
+    const entries = Object.entries(diagram.nodes);
+    if (entries.length === 0) return;
+
+    const idMap = new Map<string, TLShapeId>();
+    const center = new Map<string, { x: number; y: number }>();
+
     editor.createShapes(
-      shapes.map((s) => ({
-        id: createShapeId(),
-        type: 'geo' as const,
-        x: s.x,
-        y: s.y,
-        props: {
-          geo: s.type,
-          w: DEFAULT_W,
-          h: DEFAULT_H,
-          richText: toRichText(s.text ?? ''),
-        },
-      }))
+      entries.map(([key, node]) => {
+        const id = createShapeId();
+        idMap.set(key, id);
+        center.set(key, { x: node.x + node.w / 2, y: node.y + node.h / 2 });
+        return {
+          id,
+          type: 'geo' as const,
+          x: node.x,
+          y: node.y,
+          props: {
+            geo: node.type,
+            w: node.w,
+            h: node.h,
+            richText: toRichText(node.text ?? ''),
+          },
+        };
+      })
     );
+
+    for (const edge of diagram.edges) {
+      const fromId = idMap.get(edge.from);
+      const toId = idMap.get(edge.to);
+      const from = center.get(edge.from);
+      const to = center.get(edge.to);
+      if (!fromId || !toId || !from || !to) continue;
+      const arrowId = createShapeId();
+      editor.createShape({
+        id: arrowId,
+        type: 'arrow',
+        // Bound terminals override these; they are only the pre-binding geometry.
+        props: {
+          start: { x: from.x, y: from.y },
+          end: { x: to.x, y: to.y },
+          text: edge.text ?? '',
+        },
+      });
+      editor.createBindings([
+        bindTerminal(arrowId, fromId, 'start'),
+        bindTerminal(arrowId, toId, 'end'),
+      ]);
+    }
     editor.zoomToFit();
   }
 
@@ -78,8 +118,8 @@ export function AiPanel({ boardId }: { boardId: string }) {
         setError(await readError(res));
         return;
       }
-      const { data } = (await res.json()) as { data: AiShape[] };
-      applyShapes(data);
+      const { data } = (await res.json()) as { data: DiagramLayout };
+      applyDiagram(data);
       setPrompt('');
     } catch {
       setError('Something went wrong');

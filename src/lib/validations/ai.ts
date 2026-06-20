@@ -2,7 +2,34 @@ import { z } from 'zod';
 
 export const PROMPT_MAX = 1000;
 const MAX_INPUT_SHAPES = 500;
-const MAX_OUTPUT_SHAPES = 16;
+const MAX_NODES = 24;
+const MAX_EDGES = 32;
+const ID_MAX = 40;
+const NODE_TEXT_MAX = 80;
+
+// tldraw GeoShapeGeoStyle values — `type` maps straight to a geo shape so
+// "make a triangle" produces a triangle, not a labelled rectangle.
+export const GEO_TYPES = [
+  'rectangle',
+  'ellipse',
+  'triangle',
+  'diamond',
+  'pentagon',
+  'hexagon',
+  'octagon',
+  'star',
+  'rhombus',
+  'oval',
+  'trapezoid',
+  'cloud',
+  'heart',
+  'x-box',
+  'check-box',
+  'arrow-right',
+  'arrow-left',
+  'arrow-up',
+  'arrow-down',
+] as const;
 
 export const generateInputSchema = z.object({
   boardId: z.string().min(1),
@@ -19,44 +46,32 @@ export const analyzeInputSchema = z.object({
   shapes: z.array(analyzeShapeSchema).max(MAX_INPUT_SHAPES),
 });
 
-// The structured shape the model must return, kept deliberately small so the
-// client mapping to tldraw geo shapes is reliable.
-// Only bounded, required integer coordinates are model-generated. Width/height
-// are NOT: Gemini's structured output emits pathological numbers (hundreds of
-// digits) for them, especially on optional fields, overrunning maxOutputTokens
-// and truncating the JSON. The client applies fixed default sizes instead.
-// Mirrors tldraw's GeoShapeGeoStyle so `type` maps straight to a geo shape and
-// "make a triangle" actually produces a triangle, not a labelled rectangle.
-const aiShapeSchema = z.object({
-  type: z.enum([
-    'rectangle',
-    'ellipse',
-    'triangle',
-    'diamond',
-    'pentagon',
-    'hexagon',
-    'octagon',
-    'star',
-    'rhombus',
-    'oval',
-    'trapezoid',
-    'cloud',
-    'heart',
-    'x-box',
-    'check-box',
-    'arrow-right',
-    'arrow-left',
-    'arrow-up',
-    'arrow-down',
-  ]),
-  x: z.number().int().min(0).max(2000),
-  y: z.number().int().min(0).max(2000),
-  text: z.string().max(80).optional(),
+// The model returns a node-link GRAPH, never coordinates. Asking Gemini for
+// pixel x/y produced pathological numbers (hundreds of digits) that overran
+// maxOutputTokens and truncated the JSON; layout is now computed deterministically
+// from the graph by dagre (see `@/lib/diagram-layout`). `id` is a short model-
+// assigned key that edges reference.
+const aiNodeSchema = z.object({
+  id: z.string().min(1).max(ID_MAX),
+  type: z.enum(GEO_TYPES),
+  text: z.string().max(NODE_TEXT_MAX).optional(),
 });
 
-export const aiShapesSchema = z.object({
-  shapes: z.array(aiShapeSchema).max(MAX_OUTPUT_SHAPES),
+const aiEdgeSchema = z.object({
+  from: z.string().min(1).max(ID_MAX),
+  to: z.string().min(1).max(ID_MAX),
+  text: z.string().max(NODE_TEXT_MAX).optional(),
+});
+
+export const aiGraphSchema = z.object({
+  nodes: z.array(aiNodeSchema).min(1).max(MAX_NODES),
+  edges: z.array(aiEdgeSchema).max(MAX_EDGES),
+  // 'down' for flows/trees/org charts, 'right' for timelines/pipelines.
+  direction: z.enum(['down', 'right']).optional(),
 });
 
 export type AnalyzeShape = z.infer<typeof analyzeShapeSchema>;
-export type AiShape = z.infer<typeof aiShapeSchema>;
+export type AiNode = z.infer<typeof aiNodeSchema>;
+export type AiEdge = z.infer<typeof aiEdgeSchema>;
+export type AiGraph = z.infer<typeof aiGraphSchema>;
+export type GeoType = (typeof GEO_TYPES)[number];
