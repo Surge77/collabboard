@@ -1,13 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { createShapeId, toRichText, useEditor } from 'tldraw';
+import { createShapeId, renderPlaintextFromRichText, toRichText, useEditor } from 'tldraw';
+import type { Editor, TLShape } from 'tldraw';
 
 import type { AiShape } from '@/lib/validations/ai';
 
 const DEFAULT_W = 160;
 const DEFAULT_H = 90;
 const MAX_ANALYZE_SHAPES = 500;
+// Matches `analyzeShapeSchema.text` max length so the request never 422s.
+const MAX_SHAPE_TEXT = 200;
+
+// tldraw stores a shape's label as `props.richText`; analyze needs plain text so
+// the summary AI can see what the diagram actually says, not just shape types.
+function shapeText(editor: Editor, shape: TLShape): string | undefined {
+  if (!('richText' in shape.props) || !shape.props.richText) return undefined;
+  const text = renderPlaintextFromRichText(editor, shape.props.richText).trim();
+  return text ? text.slice(0, MAX_SHAPE_TEXT) : undefined;
+}
 
 async function readError(res: Response): Promise<string> {
   const body: unknown = await res.json().catch(() => null);
@@ -86,7 +97,10 @@ export function AiPanel({ boardId }: { boardId: string }) {
       const shapes = editor
         .getCurrentPageShapes()
         .slice(0, MAX_ANALYZE_SHAPES)
-        .map((s) => ({ type: s.type }));
+        .map((s) => {
+          const text = shapeText(editor, s);
+          return text ? { type: s.type, text } : { type: s.type };
+        });
       const res = await fetch('/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
