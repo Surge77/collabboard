@@ -15,6 +15,8 @@ const serverEnvSchema = z.object({
   DATABASE_URL: isProduction ? z.string().url() : z.string().url().optional(),
   DIRECT_URL: z.string().url().optional(),
   LIVEBLOCKS_SECRET_KEY: z.string().optional(),
+  // Signing secret for the Liveblocks webhook that snapshots canvases to Postgres.
+  LIVEBLOCKS_WEBHOOK_SECRET: z.string().optional(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
 });
 
