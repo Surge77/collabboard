@@ -75,6 +75,11 @@ describe('POST /api/boards/[id]/share-links', () => {
 });
 
 describe('GET /api/boards/[id]/share-links', () => {
+  it('returns 401 when signed out', async () => {
+    authMock.mockResolvedValue(null);
+    expect((await GET(req(), ctx)).status).toBe(401);
+  });
+
   it('returns 404 when the board is not owned', async () => {
     signedIn();
     vi.mocked(getBoard).mockResolvedValue(null);
@@ -91,6 +96,18 @@ describe('GET /api/boards/[id]/share-links', () => {
 });
 
 describe('DELETE /api/boards/[id]/share-links', () => {
+  it('returns 401 when signed out', async () => {
+    authMock.mockResolvedValue(null);
+    expect((await DELETE(req(undefined, '?linkId=l1'), ctx)).status).toBe(401);
+  });
+
+  it('returns 404 when the link does not belong to the board', async () => {
+    signedIn();
+    vi.mocked(getBoard).mockResolvedValue(ownedBoard);
+    vi.mocked(revokeShareLink).mockResolvedValue(false);
+    expect((await DELETE(req(undefined, '?linkId=ghost'), ctx)).status).toBe(404);
+  });
+
   it('returns 422 when linkId is missing', async () => {
     signedIn();
     vi.mocked(getBoard).mockResolvedValue(ownedBoard);

@@ -51,6 +51,12 @@ describe('createShareLink', () => {
     expect(link.role).toBe('EDITOR');
   });
 
+  it('rejects an out-of-range expiry (defense in depth)', async () => {
+    await expect(createShareLink('b1', 'u1', 'VIEWER', 366)).rejects.toThrow();
+    await expect(createShareLink('b1', 'u1', 'VIEWER', 0)).rejects.toThrow();
+    expect(shareLink.create).not.toHaveBeenCalled();
+  });
+
   it('leaves expiry null when no duration is given', async () => {
     shareLink.create.mockImplementation(async ({ data }) => ({
       id: 'l1',

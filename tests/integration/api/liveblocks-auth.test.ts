@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // vi.mock is hoisted above module scope, so the mock's dependencies must be
 // created inside vi.hoisted to avoid a temporal-dead-zone reference error.
@@ -24,9 +24,11 @@ vi.mock('@/lib/authz', () => ({
   resolveBoardAccess: vi.fn(),
   canEditRole: (role: string) => role === 'owner' || role === 'editor',
 }));
+vi.mock('@/lib/rate-limit', () => ({ rateLimit: vi.fn(async () => true) }));
 
 import { auth } from '@/lib/auth';
 import { resolveBoardAccess } from '@/lib/authz';
+import { rateLimit } from '@/lib/rate-limit';
 import { POST } from '@/app/api/liveblocks-auth/route';
 
 const authMock = auth as unknown as ReturnType<typeof vi.fn>;
@@ -46,7 +48,12 @@ function signedIn() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(rateLimit).mockResolvedValue(true);
   vi.stubEnv('LIVEBLOCKS_SECRET_KEY', 'sk_test_dummy');
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('POST /api/liveblocks-auth', () => {
@@ -112,5 +119,22 @@ describe('POST /api/liveblocks-auth', () => {
     const res = await POST(req({ room: ROOM }));
     expect(res.status).toBe(200);
     expect(allow).toHaveBeenCalledWith(ROOM, 'room:read');
+  });
+
+  it('returns 429 when rate limited and never checks access', async () => {
+    signedIn();
+    vi.mocked(rateLimit).mockResolvedValue(false);
+    const res = await POST(req({ room: ROOM }));
+    expect(res.status).toBe(429);
+    expect(resolveBoardAccess).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 when the realtime secret is not configured', async () => {
+    signedIn();
+    vi.stubEnv('LIVEBLOCKS_SECRET_KEY', '');
+    vi.mocked(resolveBoardAccess).mockResolvedValue({ board, role: 'owner' });
+    const res = await POST(req({ room: ROOM }));
+    expect(res.status).toBe(500);
+    expect(allow).not.toHaveBeenCalled();
   });
 });
