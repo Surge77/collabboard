@@ -92,4 +92,20 @@ describe('POST /api/ai/generate', () => {
     expect(body.data.edges).toEqual([{ from: 'n1', to: 'n2' }]);
     expect(generateObject).toHaveBeenCalledOnce();
   });
+
+  it('returns 500 when the model call fails', async () => {
+    signedIn();
+    vi.mocked(getBoard).mockResolvedValue({
+      id: CUID,
+      title: 'B',
+      isPublic: false,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    vi.mocked(generateObject).mockRejectedValueOnce(new Error('quota exceeded'));
+    const res = await POST(req({ boardId: CUID, prompt: 'draw a flow' }));
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error.code).toBe('INTERNAL_ERROR');
+  });
 });
