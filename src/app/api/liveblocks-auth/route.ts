@@ -1,13 +1,19 @@
 import { Liveblocks } from '@liveblocks/node';
 
 import { auth } from '@/lib/auth';
-import { getViewableBoard } from '@/lib/boards';
+import { canEditRole, resolveBoardAccess } from '@/lib/authz';
 import { boardIdFromRoom, userColor } from '@/lib/liveblocks';
+import { rateLimit } from '@/lib/rate-limit';
 
-function roomFromBody(body: unknown): string | null {
-  if (body && typeof body === 'object' && 'room' in body) {
-    const room = (body as { room: unknown }).room;
-    if (typeof room === 'string') return room;
+// Generous ceiling for normal Liveblocks reconnect traffic, but bounds an
+// authenticated token-guessing oracle and the DB load it would impose.
+const AUTH_RATE_LIMIT = 60;
+const WINDOW_MS = 60_000;
+
+function stringField(body: unknown, key: string): string | null {
+  if (body && typeof body === 'object' && key in body) {
+    const value = (body as Record<string, unknown>)[key];
+    if (typeof value === 'string') return value;
   }
   return null;
 }
@@ -18,16 +24,23 @@ export async function POST(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const room = roomFromBody(await request.json().catch(() => null));
+  if (!(await rateLimit(`lb:auth:${session.user.id}`, AUTH_RATE_LIMIT, WINDOW_MS))) {
+    return new Response('Too many requests', { status: 429 });
+  }
+
+  const payload: unknown = await request.json().catch(() => null);
+  const room = stringField(payload, 'room');
+  const shareToken = stringField(payload, 'token');
   const boardId = room ? boardIdFromRoom(room) : null;
   if (!room || !boardId) {
     return new Response('Bad request', { status: 400 });
   }
 
-  // Owner gets full (edit) access; anyone else gets read-only, but only if the
-  // board is public. Non-owners of private boards are rejected.
-  const viewable = await getViewableBoard(boardId, session.user.id);
-  if (!viewable) {
+  // Edit access for the owner and share-link editors; read-only for viewers and
+  // public boards. No access (private + no valid token) is rejected. The share
+  // token is re-resolved here, so the realtime grant matches the page's decision.
+  const access = await resolveBoardAccess(boardId, session.user.id, shareToken);
+  if (!access) {
     return new Response('Forbidden', { status: 403 });
   }
 
@@ -46,7 +59,7 @@ export async function POST(request: Request) {
       color: userColor(session.user.id),
     },
   });
-  lbSession.allow(room, viewable.role === 'owner' ? lbSession.FULL_ACCESS : lbSession.READ_ACCESS);
+  lbSession.allow(room, canEditRole(access.role) ? lbSession.FULL_ACCESS : lbSession.READ_ACCESS);
 
   const { body, status } = await lbSession.authorize();
   return new Response(body, { status });
