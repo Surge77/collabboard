@@ -13,6 +13,7 @@ interface BoardCardProps {
   // callers that don't care about variety (e.g. tests) can omit it.
   index?: number;
   onRename: (id: string, title: string) => void | Promise<void>;
+  onDuplicate: (id: string) => void | Promise<void>;
   onDelete: (id: string) => void | Promise<void>;
 }
 
@@ -20,7 +21,14 @@ interface BoardCardProps {
 const PIN_COLORS = ['var(--coral)', 'var(--accent)', '#10b981', '#f59e0b'];
 const TILTS = ['-rotate-1', 'rotate-1', 'rotate-2', '-rotate-2'];
 
-export function BoardCard({ board, isPending, index = 0, onRename, onDelete }: BoardCardProps) {
+export function BoardCard({
+  board,
+  isPending,
+  index = 0,
+  onRename,
+  onDuplicate,
+  onDelete,
+}: BoardCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(board.title);
 
@@ -88,6 +96,14 @@ export function BoardCard({ board, isPending, index = 0, onRename, onDelete }: B
           className="text-ink-soft hover:text-accent text-xs font-semibold disabled:opacity-40"
         >
           Rename
+        </button>
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() => onDuplicate(board.id)}
+          className="text-ink-soft hover:text-accent text-xs font-semibold disabled:opacity-40"
+        >
+          Duplicate
         </button>
         <button
           type="button"

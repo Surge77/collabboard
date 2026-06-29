@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -32,12 +32,14 @@
   "dependencies": {
     "@ai-sdk/google": "3.0.80",
     "@auth/prisma-adapter": "2.11.2",
+    "@dagrejs/dagre": "3.0.0",
     "@excalidraw/excalidraw": "0.18.1",
     "@liveblocks/client": "3.19.3",
     "@liveblocks/node": "3.19.3",
     "@liveblocks/react": "3.19.3",
     "@liveblocks/yjs": "3.19.3",
     "@prisma/client": "6.19.3",
+    "@upstash/redis": "1.38.0",
     "ai": "6.0.194",
     "jspdf": "4.2.1",
     "next": "16.2.6",

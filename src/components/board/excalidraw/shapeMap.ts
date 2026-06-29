@@ -1,4 +1,4 @@
-import type { AiShape } from '@/lib/validations/ai';
+import type { GeoType } from '@/lib/validations/ai';
 
 // Excalidraw natively supports far fewer primitives than tldraw's geo shapes.
 // The AI route still returns tldraw geo names (unchanged server-side); we map
@@ -8,7 +8,7 @@ import type { AiShape } from '@/lib/validations/ai';
 // can't. This is the known feature downgrade of leaving tldraw.
 type ExcalidrawShapeType = 'rectangle' | 'ellipse' | 'diamond';
 
-const GEO_TO_EXCALIDRAW: Partial<Record<AiShape['type'], ExcalidrawShapeType>> = {
+const GEO_TO_EXCALIDRAW: Partial<Record<GeoType, ExcalidrawShapeType>> = {
   rectangle: 'rectangle',
   ellipse: 'ellipse',
   oval: 'ellipse',
@@ -16,6 +16,6 @@ const GEO_TO_EXCALIDRAW: Partial<Record<AiShape['type'], ExcalidrawShapeType>> =
   rhombus: 'diamond',
 };
 
-export function toExcalidrawShapeType(geo: AiShape['type']): ExcalidrawShapeType {
+export function toExcalidrawShapeType(geo: GeoType): ExcalidrawShapeType {
   return GEO_TO_EXCALIDRAW[geo] ?? 'rectangle';
 }

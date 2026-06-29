@@ -10,7 +10,7 @@ interface BoardRecord {
   updatedAt: Date;
 }
 
-function toSummary(board: BoardRecord): BoardSummary {
+export function toSummary(board: BoardRecord): BoardSummary {
   return {
     id: board.id,
     title: board.title,
@@ -59,23 +59,21 @@ export async function updateBoard(
   return board ? toSummary(board) : null;
 }
 
-export type BoardRole = 'owner' | 'viewer';
+// Suffix appended to a duplicated board's title so the copy is distinguishable
+// in the dashboard list.
+const COPY_SUFFIX = ' (Copy)';
 
-// Resolves view access: the owner gets 'owner', anyone else gets 'viewer' only
-// if the board is public, otherwise null (no access). Used by the share/view
-// path and the Liveblocks auth endpoint to grant edit vs read-only.
-export async function getViewableBoard(
-  id: string,
-  userId: string
-): Promise<{ board: BoardSummary; role: BoardRole } | null> {
-  // Visibility gate in the query: only the owner's board or a public board is
-  // returned, so a private board belonging to someone else is never fetched.
-  const board = await db.board.findFirst({
-    where: { id, OR: [{ userId }, { isPublic: true }] },
+// Clones the owner's board row into a fresh private board. The canvas (Yjs room)
+// is copied separately and best-effort by the caller; this only owns the DB row.
+// A non-owner or missing source yields null (-> 404), never a copy.
+export async function duplicateBoard(id: string, userId: string): Promise<BoardSummary | null> {
+  const source = await db.board.findFirst({ where: { id, userId } });
+  if (!source) return null;
+
+  const copy = await db.board.create({
+    data: { userId, title: `${source.title}${COPY_SUFFIX}` },
   });
-  if (!board) return null;
-  const role: BoardRole = board.userId === userId ? 'owner' : 'viewer';
-  return { board: toSummary(board), role };
+  return toSummary(copy);
 }
 
 export async function deleteBoard(id: string, userId: string): Promise<boolean> {

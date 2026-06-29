@@ -17,8 +17,8 @@ import { db } from '@/lib/db';
 import {
   createBoard,
   deleteBoard,
+  duplicateBoard,
   getBoard,
-  getViewableBoard,
   listBoards,
   updateBoard,
 } from '@/lib/boards';
@@ -110,27 +110,26 @@ describe('updateBoard', () => {
   });
 });
 
-describe('getViewableBoard', () => {
-  const ownedRecord = { ...board, userId: 'u1' };
-
-  it('returns owner role for the board owner', async () => {
-    mockDb.board.findFirst.mockResolvedValue(ownedRecord);
-    const result = await getViewableBoard('b1', 'u1');
-    expect(result).toEqual({ board: expect.objectContaining({ id: 'b1' }), role: 'owner' });
-  });
-
-  it('returns viewer role for a non-owner of a public board', async () => {
-    mockDb.board.findFirst.mockResolvedValue({ ...ownedRecord, isPublic: true });
-    const result = await getViewableBoard('b1', 'someone-else');
-    expect(result?.role).toBe('viewer');
-  });
-
-  it('returns null when the query matches nothing (private, not owner, or missing)', async () => {
-    mockDb.board.findFirst.mockResolvedValue(null);
-    expect(await getViewableBoard('b1', 'someone-else')).toBeNull();
+describe('duplicateBoard', () => {
+  it('clones an owned board into a fresh private "(Copy)"', async () => {
+    mockDb.board.findFirst.mockResolvedValue(board);
+    mockDb.board.create.mockResolvedValue({ ...board, id: 'b2', title: 'My board (Copy)' });
+    const result = await duplicateBoard('b1', 'u1');
     expect(mockDb.board.findFirst).toHaveBeenCalledWith({
-      where: { id: 'b1', OR: [{ userId: 'someone-else' }, { isPublic: true }] },
+      where: { id: 'b1', userId: 'u1' },
     });
+    expect(mockDb.board.create).toHaveBeenCalledWith({
+      data: { userId: 'u1', title: 'My board (Copy)' },
+    });
+    expect(result?.id).toBe('b2');
+    expect(result?.title).toBe('My board (Copy)');
+  });
+
+  it('returns null and never creates when the source is not owned', async () => {
+    mockDb.board.findFirst.mockResolvedValue(null);
+    const result = await duplicateBoard('b1', 'intruder');
+    expect(result).toBeNull();
+    expect(mockDb.board.create).not.toHaveBeenCalled();
   });
 });
 

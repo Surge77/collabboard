@@ -53,7 +53,7 @@ is MIT with neither limitation.
 | ------------ | ---------------------------------------- |
 | Framework    | Next.js 16 (App Router) · React 19       |
 | Language     | TypeScript 5 (strict)                    |
-| Styling      | Tailwind CSS v4 + shadcn/ui              |
+| Styling      | Tailwind CSS v4                          |
 | Auth         | Auth.js v5 (Google + GitHub OAuth)       |
 | Database     | Neon PostgreSQL + Prisma 6               |
 | Canvas       | Excalidraw (MIT)                         |
@@ -76,13 +76,11 @@ Full instructions: [`docs/local-setup.md`](./docs/local-setup.md).
 
 ## Documentation
 
-- [Roadmap & phase plan](./docs/roadmap.md)
 - [Architecture](./docs/architecture.md)
 - [Local setup](./docs/local-setup.md)
 - [API reference](./docs/api.md)
 - [Database](./docs/database.md)
 - [Deployment](./docs/deployment.md)
-- [Architecture Decision Records](./docs/decisions/)
 
 ## Contributing
 

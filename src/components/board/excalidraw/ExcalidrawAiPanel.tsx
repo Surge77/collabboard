@@ -2,13 +2,12 @@
 
 import { useState } from 'react';
 import { convertToExcalidrawElements } from '@excalidraw/excalidraw';
+import type { ExcalidrawElementSkeleton } from '@excalidraw/excalidraw/data/transform';
 
 import { useExcalidrawApi } from '@/components/board/excalidraw/ExcalidrawApiContext';
 import { toExcalidrawShapeType } from '@/components/board/excalidraw/shapeMap';
-import type { AiShape } from '@/lib/validations/ai';
+import type { DiagramLayout } from '@/lib/diagram-layout';
 
-const DEFAULT_W = 160;
-const DEFAULT_H = 90;
 const MAX_ANALYZE_SHAPES = 500;
 
 async function readError(res: Response): Promise<string> {
@@ -37,17 +36,36 @@ export function ExcalidrawAiPanel({ boardId }: { boardId: string }) {
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function applyShapes(shapes: AiShape[]) {
-    if (shapes.length === 0) return;
-    const skeletons = shapes.map((s) => ({
-      type: toExcalidrawShapeType(s.type),
-      x: s.x,
-      y: s.y,
-      width: DEFAULT_W,
-      height: DEFAULT_H,
-      label: s.text ? { text: s.text } : undefined,
+  // dagre positions the nodes server-side; we render them plus arrows bound to
+  // their endpoints. Binding by skeleton id requires the nodes and arrows to be
+  // converted in the same batch, so both go into one array.
+  function applyDiagram(layout: DiagramLayout) {
+    const entries = Object.entries(layout.nodes);
+    if (entries.length === 0) return;
+
+    const nodeSkeletons: ExcalidrawElementSkeleton[] = entries.map(([id, node]) => ({
+      id,
+      type: toExcalidrawShapeType(node.type),
+      x: node.x,
+      y: node.y,
+      width: node.w,
+      height: node.h,
+      label: node.text ? { text: node.text } : undefined,
     }));
-    const created = convertToExcalidrawElements(skeletons);
+
+    const validIds = new Set(entries.map(([id]) => id));
+    const arrowSkeletons: ExcalidrawElementSkeleton[] = layout.edges
+      .filter((e) => validIds.has(e.from) && validIds.has(e.to))
+      .map((e) => ({
+        type: 'arrow',
+        x: 0,
+        y: 0,
+        label: e.text ? { text: e.text } : undefined,
+        start: { id: e.from },
+        end: { id: e.to },
+      }));
+
+    const created = convertToExcalidrawElements([...nodeSkeletons, ...arrowSkeletons]);
     api.updateScene({ elements: [...api.getSceneElements(), ...created] });
     api.scrollToContent(created, { fitToContent: true });
   }
@@ -66,8 +84,8 @@ export function ExcalidrawAiPanel({ boardId }: { boardId: string }) {
         setError(await readError(res));
         return;
       }
-      const { data } = (await res.json()) as { data: AiShape[] };
-      applyShapes(data);
+      const { data } = (await res.json()) as { data: DiagramLayout };
+      applyDiagram(data);
       setPrompt('');
     } catch {
       setError('Something went wrong');

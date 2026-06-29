@@ -1,5 +1,7 @@
 import '@liveblocks/client';
 
+import type { ReactionEvent } from '@/lib/reactions';
+
 // Global Liveblocks types — read by the @liveblocks/react hooks (useSelf, useOthers)
 // and the @liveblocks/node auth endpoint.
 declare global {
@@ -12,6 +14,10 @@ declare global {
         color: string;
       }; // exposed as `user.info`
     };
+
+    // Ephemeral events broadcast between participants (useBroadcastEvent /
+    // useEventListener). Receivers still validate the payload at runtime.
+    RoomEvent: ReactionEvent;
   }
 }
 

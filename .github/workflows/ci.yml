@@ -69,3 +69,23 @@ jobs:
         env:
           # Auth.js needs a secret present for the production build step.
           AUTH_SECRET: build-time-placeholder-not-a-real-secret
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm exec playwright install --with-deps chromium
+      # Public, unauthenticated flows only (landing, login, auth-gate redirects,
+      # 401s). The dev server boots in development mode, so no DB/OAuth secrets are
+      # needed; AUTH_SECRET is set because Auth.js requires it to initialize.
+      - run: pnpm exec playwright test
+        env:
+          AUTH_SECRET: build-time-placeholder-not-a-real-secret
