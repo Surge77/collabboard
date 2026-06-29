@@ -25,16 +25,13 @@ export default async function BoardPage({ params }: BoardPageProps) {
 
   return (
     <main className="relative flex h-dvh w-full flex-col">
-      <header className="border-foreground/10 bg-background relative z-50 flex items-center gap-4 border-b px-4 py-2">
-        <Link
-          href="/dashboard"
-          className="text-foreground/60 hover:text-foreground text-sm font-medium"
-        >
+      <header className="border-line bg-surface relative z-50 flex items-center gap-4 border-b px-4 py-2.5">
+        <Link href="/dashboard" className="text-ink-soft hover:text-accent text-sm font-semibold">
           ← Boards
         </Link>
-        <h1 className="truncate text-sm font-semibold">{board.title}</h1>
+        <h1 className="text-foreground truncate text-sm font-bold">{board.title}</h1>
         {!canEdit ? (
-          <span className="text-foreground/50 border-foreground/15 rounded-full border px-2 py-0.5 text-xs">
+          <span className="text-ink-soft border-foreground/20 rounded-full border-2 px-2 py-0.5 text-xs font-semibold">
             View only
           </span>
         ) : null}

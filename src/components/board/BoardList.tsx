@@ -116,32 +116,34 @@ export function BoardList({ initialBoards }: BoardListProps) {
 
   return (
     <section className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <button
           type="button"
           onClick={createBoard}
           disabled={isCreating}
-          className="bg-foreground text-background rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="btn btn-accent !px-5 !py-2.5 text-sm"
         >
-          {isCreating ? 'Creating…' : 'New board'}
+          {isCreating ? 'Creating…' : '+ New board'}
         </button>
         {error ? (
-          <p role="alert" className="text-sm text-red-500">
+          <p role="alert" className="text-sm font-semibold text-red-500">
             {error}
           </p>
         ) : null}
       </div>
 
       {boards.length === 0 ? (
-        <div className="border-foreground/15 text-foreground/50 flex h-64 items-center justify-center rounded-xl border border-dashed text-sm">
-          No boards yet — create your first one.
+        <div className="border-foreground/30 dotgrid flex h-64 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed">
+          <p className="font-hand text-accent -rotate-2 text-3xl">a blank canvas awaits</p>
+          <p className="text-ink-soft text-sm">Hit “New board” to start your first one.</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {boards.map((board) => (
+        <div className="grid gap-6 px-1 py-2 sm:grid-cols-2 lg:grid-cols-3">
+          {boards.map((board, i) => (
             <BoardCard
               key={board.id}
               board={board}
+              index={i}
               isPending={pendingIds.has(board.id)}
               onRename={renameBoard}
               onDelete={deleteBoard}
