@@ -3,7 +3,7 @@
 import { ClientSideSuspense, LiveblocksProvider, RoomProvider } from '@liveblocks/react/suspense';
 import { useCallback } from 'react';
 
-import { CollabCanvas } from '@/components/board/CollabCanvas';
+import { CollabExcalidrawCanvas } from '@/components/board/excalidraw/CollabExcalidrawCanvas';
 
 interface RoomProps {
   roomId: string;
@@ -44,7 +44,7 @@ export function Room({ roomId, boardId, canEdit, shareToken }: RoomProps) {
     <LiveblocksProvider authEndpoint={authEndpoint}>
       <RoomProvider id={roomId}>
         <ClientSideSuspense fallback={<CanvasFallback />}>
-          <CollabCanvas boardId={boardId} canEdit={canEdit} />
+          <CollabExcalidrawCanvas boardId={boardId} canEdit={canEdit} />
         </ClientSideSuspense>
       </RoomProvider>
     </LiveblocksProvider>

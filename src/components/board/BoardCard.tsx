@@ -9,14 +9,31 @@ import type { BoardSummary } from '@/types/board';
 interface BoardCardProps {
   board: BoardSummary;
   isPending: boolean;
+  // Position in the grid; drives the cosmetic pin colour and tilt. Optional so
+  // callers that don't care about variety (e.g. tests) can omit it.
+  index?: number;
   onRename: (id: string, title: string) => void | Promise<void>;
   onDuplicate: (id: string) => void | Promise<void>;
   onDelete: (id: string) => void | Promise<void>;
 }
 
-export function BoardCard({ board, isPending, onRename, onDuplicate, onDelete }: BoardCardProps) {
+// Cycled so a wall of boards looks pinned by hand rather than grid-perfect.
+const PIN_COLORS = ['var(--coral)', 'var(--accent)', '#10b981', '#f59e0b'];
+const TILTS = ['-rotate-1', 'rotate-1', 'rotate-2', '-rotate-2'];
+
+export function BoardCard({
+  board,
+  isPending,
+  index = 0,
+  onRename,
+  onDuplicate,
+  onDelete,
+}: BoardCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(board.title);
+
+  const pin = PIN_COLORS[index % PIN_COLORS.length];
+  const tilt = TILTS[index % TILTS.length];
 
   function commit() {
     const next = draft.trim();
@@ -27,9 +44,14 @@ export function BoardCard({ board, isPending, onRename, onDuplicate, onDelete }:
 
   return (
     <article
-      className="border-foreground/15 hover:border-foreground/30 group relative flex flex-col gap-3 rounded-xl border p-5 transition-colors"
+      className={`bg-surface border-foreground sketch lift ${tilt} group relative flex flex-col gap-3 border-2 p-5`}
       aria-busy={isPending}
     >
+      <span
+        className="absolute -top-2 right-4 h-4 w-4 rounded-full border-2"
+        style={{ backgroundColor: pin, borderColor: 'var(--background)' }}
+        aria-hidden="true"
+      />
       {isEditing ? (
         <input
           autoFocus
@@ -45,20 +67,23 @@ export function BoardCard({ board, isPending, onRename, onDuplicate, onDelete }:
               setIsEditing(false);
             }
           }}
-          className="border-foreground/20 rounded-md border bg-transparent px-2 py-1 text-base font-semibold"
+          className="border-foreground/30 rounded-md border-2 bg-transparent px-2 py-1 text-base font-bold"
         />
       ) : (
-        <Link href={`/board/${board.id}`} className="text-base font-semibold hover:underline">
+        <Link
+          href={`/board/${board.id}`}
+          className="decoration-coral text-foreground text-lg font-bold underline-offset-4 hover:underline"
+        >
           {board.title}
         </Link>
       )}
 
-      <p className="text-foreground/50 text-xs">
-        Updated {new Date(board.updatedAt).toLocaleDateString()}
-        {board.isPublic ? ' · Public' : ''}
+      <p className="text-ink-soft font-mono text-xs">
+        {new Date(board.updatedAt).toLocaleDateString()}
+        {board.isPublic ? ' · public' : ''}
       </p>
 
-      <div className="mt-1 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+      <div className="mt-1 flex gap-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
         <button
           type="button"
           disabled={isPending}
@@ -68,7 +93,7 @@ export function BoardCard({ board, isPending, onRename, onDuplicate, onDelete }:
             setDraft(board.title);
             setIsEditing(true);
           }}
-          className="text-foreground/60 hover:text-foreground text-xs font-medium disabled:opacity-40"
+          className="text-ink-soft hover:text-accent text-xs font-semibold disabled:opacity-40"
         >
           Rename
         </button>
@@ -76,7 +101,7 @@ export function BoardCard({ board, isPending, onRename, onDuplicate, onDelete }:
           type="button"
           disabled={isPending}
           onClick={() => onDuplicate(board.id)}
-          className="text-foreground/60 hover:text-foreground text-xs font-medium disabled:opacity-40"
+          className="text-ink-soft hover:text-accent text-xs font-semibold disabled:opacity-40"
         >
           Duplicate
         </button>
