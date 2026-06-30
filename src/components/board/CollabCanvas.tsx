@@ -8,6 +8,7 @@ import { AiPanel } from '@/components/board/AiPanel';
 import { Avatars } from '@/components/board/Avatars';
 import { ColorToggle } from '@/components/board/ColorToggle';
 import { ExportMenu } from '@/components/board/ExportMenu';
+import { Reactions } from '@/components/board/Reactions';
 import { useYjsStore } from '@/components/board/useYjsStore';
 
 // Undefined on localhost is fine — tldraw only enforces a license at production
@@ -53,6 +54,8 @@ export function CollabCanvas({ boardId, canEdit }: CollabCanvasProps) {
         {/* Export is available to viewers too: read access implies the right to
             export what you can already see. Fully client-side, no server call. */}
         <ExportMenu />
+        {/* Ephemeral emotes — everyone in the room can react, including viewers. */}
+        <Reactions />
       </Tldraw>
     </div>
   );
