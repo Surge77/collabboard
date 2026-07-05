@@ -10,6 +10,7 @@ import { ColorToggle } from '@/components/board/ColorToggle';
 import { ExportMenu } from '@/components/board/ExportMenu';
 import { Reactions } from '@/components/board/Reactions';
 import { useYjsStore } from '@/components/board/useYjsStore';
+import { VersionHistory } from '@/components/board/VersionHistory';
 import { canEditRole } from '@/lib/board-roles';
 import type { BoardRole } from '@/types/board';
 
@@ -58,6 +59,7 @@ export function CollabCanvas({ boardId, role }: CollabCanvasProps) {
         }}
       >
         {canEdit ? <AiPanel boardId={boardId} /> : null}
+        {canEdit ? <VersionHistory boardId={boardId} /> : null}
         {canEdit ? <ColorToggle /> : null}
         {/* Export is available to viewers too: read access implies the right to
             export what you can already see. Fully client-side, no server call. */}
