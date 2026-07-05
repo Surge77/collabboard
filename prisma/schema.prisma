@@ -158,6 +158,7 @@ model Board {
   deletedAt      DateTime?
   members        BoardMember[]
   snapshot       BoardSnapshot?
+  versions       BoardVersion[]
   shareLinks     ShareLink[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -167,6 +168,22 @@ model Board {
   @@index([folderId])
   // Hot dashboard query: boards in an org ordered by recency.
   @@index([orgId, updatedAt])
+}
+
+// Append-only version history for a board's canvas. Distinct from the single-row
+// BoardSnapshot backstop (latest-state-only): each row is a named checkpoint the
+// user can restore to. yjsState is a full Yjs binary state, captured on demand.
+model BoardVersion {
+  id          String   @id @default(cuid())
+  boardId     String
+  board       Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  yjsState    Bytes
+  label       String?
+  // Who saved this checkpoint; nullable so a version outlives the user's row.
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([boardId, createdAt])
 }
 
 // Role granted to a visitor. The board owner (Board.userId) always has full

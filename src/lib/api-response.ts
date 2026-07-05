@@ -5,6 +5,7 @@ export type ApiErrorCode =
   | 'NOT_FOUND'
   | 'VALIDATION_ERROR'
   | 'RATE_LIMITED'
+  | 'CONFLICT'
   | 'INTERNAL_ERROR';
 
 interface SuccessBody<T> {
