@@ -4,11 +4,12 @@ import { ClientSideSuspense, LiveblocksProvider, RoomProvider } from '@liveblock
 import { useCallback } from 'react';
 
 import { CollabCanvas } from '@/components/board/CollabCanvas';
+import type { BoardRole } from '@/types/board';
 
 interface RoomProps {
   roomId: string;
   boardId: string;
-  canEdit: boolean;
+  role: BoardRole;
   shareToken?: string;
 }
 
@@ -24,7 +25,7 @@ function CanvasFallback() {
   );
 }
 
-export function Room({ roomId, boardId, canEdit, shareToken }: RoomProps) {
+export function Room({ roomId, boardId, role, shareToken }: RoomProps) {
   // A callback authEndpoint (not a URL string) so the share token rides in the
   // POST body — never in a URL/query that would leak into access logs. The auth
   // route re-resolves access from the token, so a forged token grants nothing.
@@ -44,7 +45,7 @@ export function Room({ roomId, boardId, canEdit, shareToken }: RoomProps) {
     <LiveblocksProvider authEndpoint={authEndpoint}>
       <RoomProvider id={roomId}>
         <ClientSideSuspense fallback={<CanvasFallback />}>
-          <CollabCanvas boardId={boardId} canEdit={canEdit} />
+          <CollabCanvas boardId={boardId} role={role} />
         </ClientSideSuspense>
       </RoomProvider>
     </LiveblocksProvider>

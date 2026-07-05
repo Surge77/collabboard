@@ -47,6 +47,15 @@ async function seedFixtures(): Promise<void> {
       update: { email: TEST_USER.email, name: TEST_USER.name },
       create: { id: TEST_USER.id, email: TEST_USER.email, name: TEST_USER.name },
     });
+    const org = await prisma.organization.upsert({
+      where: { personalForUserId: TEST_USER.id },
+      update: {},
+      create: {
+        name: 'Personal',
+        personalForUserId: TEST_USER.id,
+        members: { create: { userId: TEST_USER.id, role: 'ADMIN' } },
+      },
+    });
     const boards: Record<BoardKey, string> = {
       draw: freshBoardId(),
       multi: freshBoardId(),
@@ -54,7 +63,14 @@ async function seedFixtures(): Promise<void> {
     };
     for (const id of Object.values(boards)) {
       await prisma.board.create({
-        data: { id, userId: TEST_USER.id, isPublic: true, title: 'E2E Sync Board' },
+        data: {
+          id,
+          userId: TEST_USER.id,
+          createdById: TEST_USER.id,
+          orgId: org.id,
+          isPublic: true,
+          title: 'E2E Sync Board',
+        },
       });
     }
     fs.mkdirSync(path.dirname(BOARDS_FILE), { recursive: true });

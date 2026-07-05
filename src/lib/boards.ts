@@ -20,42 +20,65 @@ export function toSummary(board: BoardRecord): BoardSummary {
   };
 }
 
+const PERSONAL_ORG_NAME = 'Personal';
+
+// Every board belongs to an organization. Users signing up via OAuth don't get
+// one from the adapter, so it's created lazily on first need. The unique
+// constraint on personalForUserId makes the upsert race-safe.
+export async function ensurePersonalOrg(userId: string): Promise<string> {
+  const org = await db.organization.upsert({
+    where: { personalForUserId: userId },
+    update: {},
+    create: {
+      name: PERSONAL_ORG_NAME,
+      personalForUserId: userId,
+      members: { create: { userId, role: 'ADMIN' } },
+    },
+  });
+  return org.id;
+}
+
+// Boards the user can see in the dashboard: boards they created, boards they
+// were explicitly added to, and boards in orgs they belong to. Soft-deleted
+// boards are excluded everywhere.
 export async function listBoards(userId: string): Promise<BoardSummary[]> {
   const boards = await db.board.findMany({
-    where: { userId },
+    where: {
+      deletedAt: null,
+      OR: [
+        { createdById: userId },
+        { members: { some: { userId } } },
+        { org: { members: { some: { userId } } } },
+      ],
+    },
     orderBy: { updatedAt: 'desc' },
   });
   return boards.map(toSummary);
 }
 
 export async function createBoard(userId: string, input: CreateBoardData): Promise<BoardSummary> {
+  const orgId = await ensurePersonalOrg(userId);
   const board = await db.board.create({
-    data: { userId, title: input.title },
+    // userId kept in sync with createdById until the legacy column is dropped.
+    data: { userId, createdById: userId, orgId, title: input.title },
   });
   return toSummary(board);
 }
 
-export async function getBoard(id: string, userId: string): Promise<BoardSummary | null> {
-  // Ownership is part of the lookup: a non-owner gets null, never the record.
-  const board = await db.board.findFirst({ where: { id, userId } });
-  return board ? toSummary(board) : null;
-}
+// By-id mutations below carry no access check of their own: every caller must
+// gate through resolveBoardAccess first (role semantics live in the routes).
 
 export async function updateBoard(
   id: string,
-  userId: string,
   input: UpdateBoardData
 ): Promise<BoardSummary | null> {
-  // updateMany scoped by userId is atomic: ownership is re-asserted in the same
-  // query that writes, so there is no TOCTOU window and a missing/unowned board
-  // yields count 0 (-> null -> 404) instead of a thrown P2025.
   const result = await db.board.updateMany({
-    where: { id, userId },
-    data: { title: input.title, isPublic: input.isPublic },
+    where: { id, deletedAt: null },
+    data: { title: input.title, isPublic: input.isPublic, lastActivityAt: new Date() },
   });
   if (result.count === 0) return null;
 
-  const board = await db.board.findFirst({ where: { id, userId } });
+  const board = await db.board.findFirst({ where: { id } });
   return board ? toSummary(board) : null;
 }
 
@@ -63,22 +86,22 @@ export async function updateBoard(
 // in the dashboard list.
 const COPY_SUFFIX = ' (Copy)';
 
-// Clones the owner's board row into a fresh private board. The canvas (Yjs room)
-// is copied separately and best-effort by the caller; this only owns the DB row.
-// A non-owner or missing source yields null (-> 404), never a copy.
-export async function duplicateBoard(id: string, userId: string): Promise<BoardSummary | null> {
-  const source = await db.board.findFirst({ where: { id, userId } });
-  if (!source) return null;
-
+// Clones a source board's row into a fresh private board owned by the caller,
+// in the caller's personal org. Access to the SOURCE must already have been
+// checked by the caller (resolveBoardAccess); this only owns the new DB row.
+export async function duplicateBoard(sourceTitle: string, userId: string): Promise<BoardSummary> {
+  const orgId = await ensurePersonalOrg(userId);
   const copy = await db.board.create({
-    data: { userId, title: `${source.title}${COPY_SUFFIX}` },
+    data: { userId, createdById: userId, orgId, title: `${sourceTitle}${COPY_SUFFIX}` },
   });
   return toSummary(copy);
 }
 
-export async function deleteBoard(id: string, userId: string): Promise<boolean> {
-  // deleteMany scoped by userId enforces ownership atomically; count tells us
-  // whether anything matched without a separate existence query.
-  const result = await db.board.deleteMany({ where: { id, userId } });
+export async function deleteBoard(id: string): Promise<boolean> {
+  // Soft delete; already-deleted boards yield count 0 so a repeat call 404s.
+  const result = await db.board.updateMany({
+    where: { id, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
   return result.count > 0;
 }

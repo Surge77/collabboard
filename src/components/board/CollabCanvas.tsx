@@ -10,6 +10,8 @@ import { ColorToggle } from '@/components/board/ColorToggle';
 import { ExportMenu } from '@/components/board/ExportMenu';
 import { Reactions } from '@/components/board/Reactions';
 import { useYjsStore } from '@/components/board/useYjsStore';
+import { canEditRole } from '@/lib/board-roles';
+import type { BoardRole } from '@/types/board';
 
 // Undefined on localhost is fine — tldraw only enforces a license at production
 // runtime. The Hobby key is added at deploy time.
@@ -17,10 +19,11 @@ const licenseKey = process.env.NEXT_PUBLIC_TLDRAW_LICENSE_KEY;
 
 interface CollabCanvasProps {
   boardId: string;
-  canEdit: boolean;
+  role: BoardRole;
 }
 
-export function CollabCanvas({ boardId, canEdit }: CollabCanvasProps) {
+export function CollabCanvas({ boardId, role }: CollabCanvasProps) {
+  const canEdit = canEditRole(role);
   // Selectors (not bare useSelf) avoid re-rendering on every presence change.
   const id = useSelf((me) => me.id);
   const info = useSelf((me) => me.info);
