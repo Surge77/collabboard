@@ -101,6 +101,14 @@ async function writeStorageState(): Promise<void> {
 
 export default async function globalSetup(): Promise<void> {
   loadEnvLocal();
+  // CI runs only the public, unauthenticated specs — it has no database or
+  // auth secrets. Skip fixture seeding entirely so global setup cannot fail
+  // there; the sync suite detects the missing boards file and skips itself.
+  if (!process.env.DATABASE_URL || !process.env.AUTH_SECRET) {
+    console.warn('e2e global-setup: DATABASE_URL/AUTH_SECRET missing — skipping sync fixtures');
+    if (fs.existsSync(BOARDS_FILE)) fs.rmSync(BOARDS_FILE);
+    return;
+  }
   await seedFixtures();
   await writeStorageState();
 }

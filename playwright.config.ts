@@ -14,7 +14,7 @@ export default defineConfig({
   webServer: {
     command: 'pnpm dev',
     url: baseURL,
-    // NEXT_PUBLIC_E2E_HOOKS exposes the Excalidraw scene handle the sync spec
+    // NEXT_PUBLIC_E2E_HOOKS exposes the tldraw editor handle the sync spec
     // reads. Inlined at dev-server start, so the server must be launched here.
     env: { ...process.env, NEXT_PUBLIC_E2E_HOOKS: '1' },
     reuseExistingServer: !process.env.CI,
