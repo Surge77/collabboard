@@ -4,29 +4,37 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { BOARDS_FILE, type BoardKey, STORAGE_STATE } from './sync.fixtures';
 
-// global-setup created a fresh empty board per key for this run.
-const TEST_BOARDS = JSON.parse(fs.readFileSync(BOARDS_FILE, 'utf8')) as Record<BoardKey, string>;
+// global-setup creates a fresh empty board per key when DB/auth secrets are
+// available; in CI it skips seeding and removes the boards file, so this
+// suite must skip itself instead of failing at import time.
+const HAS_FIXTURES = fs.existsSync(BOARDS_FILE);
+const TEST_BOARDS: Record<BoardKey, string> = HAS_FIXTURES
+  ? (JSON.parse(fs.readFileSync(BOARDS_FILE, 'utf8')) as Record<BoardKey, string>)
+  : { draw: '', multi: '', remove: '' };
 
-// Reads the test-only handle exposed by ExcalidrawSurface under
-// NEXT_PUBLIC_E2E_HOOKS. Counts rendered (non-zero-size) elements — the 0x0
-// reconciliation bug kept this at zero in the receiving client even when the
-// underlying Yjs doc had synced.
-interface SceneWindow {
-  __exApi?: { getSceneElements: () => ReadonlyArray<{ width: number; height: number }> };
+// Reads the test-only editor handle exposed by CollabCanvas under
+// NEXT_PUBLIC_E2E_HOOKS. Counts rendered (non-zero-size) geo shapes — a
+// reconciliation bug that syncs the doc but not real geometry would keep
+// this at zero in the receiving client.
+interface EditorWindow {
+  __tlEditor?: {
+    getCurrentPageShapes: () => ReadonlyArray<{ props?: { w?: number; h?: number } }>;
+  };
 }
 
-function visibleElementCount(): number {
-  const api = (window as unknown as SceneWindow).__exApi;
-  if (!api) return -1; // hook missing — fail loudly rather than silently pass
-  return api.getSceneElements().filter((e) => e.width > 0 && e.height > 0).length;
+function visibleShapeCount(): number {
+  const editor = (window as unknown as EditorWindow).__tlEditor;
+  if (!editor) return -1; // hook missing — fail loudly rather than silently pass
+  return editor.getCurrentPageShapes().filter((s) => (s.props?.w ?? 0) > 0 && (s.props?.h ?? 0) > 0)
+    .length;
 }
 
-const count = (page: Page) => page.evaluate(visibleElementCount);
+const count = (page: Page) => page.evaluate(visibleShapeCount);
 
-// Excalidraw needs a real pointer sequence with small gaps between moves,
-// otherwise the drag is dropped and no element is created.
+// tldraw's geo tool: 'r' selects the rectangle tool; a drag with small gaps
+// between moves creates the shape and leaves it selected.
 async function drawRect(page: Page, x: number, y: number): Promise<void> {
-  await page.locator('[title*="Rectangle"]').first().click();
+  await page.keyboard.press('r');
   await page.mouse.move(x, y);
   await page.mouse.down();
   for (let i = 1; i <= 8; i += 1) {
@@ -38,8 +46,10 @@ async function drawRect(page: Page, x: number, y: number): Promise<void> {
 
 async function openBoard(page: Page, boardId: string): Promise<void> {
   await page.goto(`/board/${boardId}`);
-  await page.locator('.excalidraw').waitFor();
-  expect(await count(page), 'E2E scene hook must be present').toBeGreaterThanOrEqual(0);
+  await page.locator('.tl-canvas').waitFor();
+  await expect
+    .poll(() => count(page), { timeout: 10_000, message: 'E2E editor hook must be present' })
+    .toBeGreaterThanOrEqual(0);
   // Let the Liveblocks provider finish connecting before we draw, so an edit
   // can't race ahead of the room being joined on both sides.
   await page.waitForTimeout(2_500);
@@ -50,6 +60,7 @@ const PROPAGATE = 20_000;
 
 // Each run uses fresh empty boards (global-setup), so absolute counts are safe.
 test.describe('canvas realtime sync', () => {
+  test.skip(!HAS_FIXTURES, 'sync fixtures unavailable (no DATABASE_URL/AUTH_SECRET)');
   test.describe.configure({ mode: 'serial' });
 
   test('a shape drawn in one client appears with real geometry in the other', async ({
@@ -112,7 +123,7 @@ test.describe('canvas realtime sync', () => {
       // The freshly drawn shape stays selected; delete it.
       await a.keyboard.press('Delete');
 
-      // The deletion must propagate (isDeleted), removing it from B's scene.
+      // The deletion must propagate, removing it from B's scene.
       await expect.poll(() => count(a), { timeout: 5_000 }).toBe(0);
       await expect.poll(() => count(b), { timeout: PROPAGATE }).toBe(0);
     } finally {
