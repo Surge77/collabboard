@@ -15,16 +15,19 @@ datasource db {
 // ─── Auth.js models ────────────────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  boards        Board[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String               @id @default(cuid())
+  name             String?
+  email            String               @unique
+  emailVerified    DateTime?
+  image            String?
+  accounts         Account[]
+  sessions         Session[]
+  boards           Board[]
+  createdBoards    Board[]              @relation("BoardCreator")
+  orgMemberships   OrganizationMember[]
+  boardMemberships BoardMember[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 }
 
 model Account {
@@ -66,18 +69,104 @@ model VerificationToken {
 
 // ─── Application models ──────────────────────────────────────────────────────
 
+// Membership role inside an organization. An org ADMIN administers every board
+// in the org; a MEMBER can edit them.
+enum OrgRole {
+  ADMIN
+  MEMBER
+}
+
+// Per-board membership role. Precedence over org-level roles — an explicit
+// board grant is more specific than an org-wide one.
+enum BoardMemberRole {
+  ADMIN
+  EDITOR
+  COMMENTER
+  VIEWER
+}
+
+model Organization {
+  id                String               @id @default(cuid())
+  name              String
+  // Set for a user's auto-created personal workspace; the unique constraint
+  // guarantees at most one personal org per user.
+  personalForUserId String?              @unique
+  members           OrganizationMember[]
+  boards            Board[]
+  folders           Folder[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+}
+
+model OrganizationMember {
+  id        String       @id @default(cuid())
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      OrgRole      @default(MEMBER)
+  createdAt DateTime     @default(now())
+
+  @@unique([orgId, userId])
+  @@index([userId])
+}
+
+model Folder {
+  id        String       @id @default(cuid())
+  name      String
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  boards    Board[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([orgId])
+}
+
+// Explicit per-user grant on a single board. Owner (Board.createdById) always
+// has admin and is not represented here.
+model BoardMember {
+  id        String          @id @default(cuid())
+  boardId   String
+  board     Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      BoardMemberRole @default(VIEWER)
+  createdAt DateTime        @default(now())
+
+  @@unique([boardId, userId])
+  @@index([userId])
+}
+
 model Board {
-  id         String         @id @default(cuid())
-  title      String         @default("Untitled Board")
-  userId     String
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  isPublic   Boolean        @default(false)
-  snapshot   BoardSnapshot?
-  shareLinks ShareLink[]
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  id             String         @id @default(cuid())
+  title          String         @default("Untitled Board")
+  // Legacy owner column — kept in sync with createdById until the running
+  // deployments are migrated off it; dropped in a later cleanup migration.
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdById    String
+  createdBy      User           @relation("BoardCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  orgId          String
+  org            Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  folderId       String?
+  folder         Folder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  isPublic       Boolean        @default(false)
+  thumbnailUrl   String?
+  lastActivityAt DateTime       @default(now())
+  archivedAt     DateTime?
+  deletedAt      DateTime?
+  members        BoardMember[]
+  snapshot       BoardSnapshot?
+  shareLinks     ShareLink[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@index([userId])
+  @@index([createdById])
+  @@index([folderId])
+  // Hot dashboard query: boards in an org ordered by recency.
+  @@index([orgId, updatedAt])
 }
 
 // Role granted to a visitor. The board owner (Board.userId) always has full

@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }));
-vi.mock('@/lib/boards', () => ({ getBoard: vi.fn() }));
+vi.mock('@/lib/authz', () => ({
+  resolveBoardAccess: vi.fn(),
+  isAdminRole: (role: string) => role === 'admin',
+}));
 vi.mock('@/lib/share-links', () => ({
   createShareLink: vi.fn(),
   listShareLinks: vi.fn(),
@@ -9,7 +12,7 @@ vi.mock('@/lib/share-links', () => ({
 }));
 
 import { auth } from '@/lib/auth';
-import { getBoard } from '@/lib/boards';
+import { resolveBoardAccess } from '@/lib/authz';
 import { createShareLink, listShareLinks, revokeShareLink } from '@/lib/share-links';
 import { DELETE, GET, POST } from '@/app/api/boards/[id]/share-links/route';
 
@@ -51,16 +54,16 @@ describe('POST /api/boards/[id]/share-links', () => {
     expect((await POST(req({ role: 'GOD' }), ctx)).status).toBe(422);
   });
 
-  it('returns 404 when the board is not owned', async () => {
+  it('returns 404 when the caller is not a board admin', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue(null);
+    vi.mocked(resolveBoardAccess).mockResolvedValue(null);
     expect((await POST(req({ role: 'VIEWER' }), ctx)).status).toBe(404);
     expect(createShareLink).not.toHaveBeenCalled();
   });
 
   it('creates a link for an owned board', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue(ownedBoard);
+    vi.mocked(resolveBoardAccess).mockResolvedValue({ board: ownedBoard, role: 'admin' });
     vi.mocked(createShareLink).mockResolvedValue({
       id: 'l1',
       token: 'tok',
@@ -80,16 +83,16 @@ describe('GET /api/boards/[id]/share-links', () => {
     expect((await GET(req(), ctx)).status).toBe(401);
   });
 
-  it('returns 404 when the board is not owned', async () => {
+  it('returns 404 when the caller is not a board admin', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue(null);
+    vi.mocked(resolveBoardAccess).mockResolvedValue(null);
     expect((await GET(req(), ctx)).status).toBe(404);
     expect(listShareLinks).not.toHaveBeenCalled();
   });
 
   it('lists links for an owned board', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue(ownedBoard);
+    vi.mocked(resolveBoardAccess).mockResolvedValue({ board: ownedBoard, role: 'admin' });
     vi.mocked(listShareLinks).mockResolvedValue([]);
     expect((await GET(req(), ctx)).status).toBe(200);
   });
@@ -103,27 +106,27 @@ describe('DELETE /api/boards/[id]/share-links', () => {
 
   it('returns 404 when the link does not belong to the board', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue(ownedBoard);
+    vi.mocked(resolveBoardAccess).mockResolvedValue({ board: ownedBoard, role: 'admin' });
     vi.mocked(revokeShareLink).mockResolvedValue(false);
     expect((await DELETE(req(undefined, '?linkId=ghost'), ctx)).status).toBe(404);
   });
 
   it('returns 422 when linkId is missing', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue(ownedBoard);
+    vi.mocked(resolveBoardAccess).mockResolvedValue({ board: ownedBoard, role: 'admin' });
     expect((await DELETE(req(), ctx)).status).toBe(422);
   });
 
-  it('returns 404 when the board is not owned', async () => {
+  it('returns 404 when the caller is not a board admin', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue(null);
+    vi.mocked(resolveBoardAccess).mockResolvedValue(null);
     expect((await DELETE(req(undefined, '?linkId=l1'), ctx)).status).toBe(404);
     expect(revokeShareLink).not.toHaveBeenCalled();
   });
 
   it('revokes a link for an owned board', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue(ownedBoard);
+    vi.mocked(resolveBoardAccess).mockResolvedValue({ board: ownedBoard, role: 'admin' });
     vi.mocked(revokeShareLink).mockResolvedValue(true);
     const res = await DELETE(req(undefined, '?linkId=l1'), ctx);
     expect(res.status).toBe(200);

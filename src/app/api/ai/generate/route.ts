@@ -3,7 +3,7 @@ import { generateObject } from 'ai';
 import { buildGeneratePrompt, getGeminiModel } from '@/lib/ai';
 import { apiError, apiSuccess } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
-import { getBoard } from '@/lib/boards';
+import { canEditRole, resolveBoardAccess } from '@/lib/authz';
 import { layoutDiagram } from '@/lib/diagram-layout';
 import { rateLimit } from '@/lib/rate-limit';
 import { aiGraphSchema, generateInputSchema } from '@/lib/validations/ai';
@@ -36,7 +36,10 @@ export async function POST(request: Request) {
     return apiError('VALIDATION_ERROR', 'Invalid input', 422, flattenFieldErrors(parsed.error));
   }
 
-  const board = await getBoard(parsed.data.boardId, session.user.id);
+  // AI output lands on the canvas, so require edit rights (admin/editor) —
+  // the same gate the AiPanel renders under.
+  const access = await resolveBoardAccess(parsed.data.boardId, session.user.id);
+  const board = access && canEditRole(access.role) ? access.board : null;
   if (!board) {
     return apiError('NOT_FOUND', 'Board not found', 404);
   }

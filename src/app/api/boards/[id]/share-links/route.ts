@@ -1,6 +1,6 @@
 import { apiError, apiSuccess } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
-import { getBoard } from '@/lib/boards';
+import { isAdminRole, resolveBoardAccess } from '@/lib/authz';
 import { createShareLink, listShareLinks, revokeShareLink } from '@/lib/share-links';
 import { createShareLinkSchema } from '@/lib/validations/share-link';
 import { flattenFieldErrors } from '@/lib/zod-errors';
@@ -9,10 +9,11 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-// All three operations are owner-only: getBoard returns null for a non-owner, so a
-// share link can only be minted, listed, or revoked by the board's owner.
-async function requireOwnedBoard(id: string, userId: string): Promise<boolean> {
-  return (await getBoard(id, userId)) !== null;
+// All three operations are admin-only: the creator, explicit board admins, and
+// org admins may mint, list, or revoke share links. Everyone else sees a 404.
+async function requireBoardAdmin(id: string, userId: string): Promise<boolean> {
+  const access = await resolveBoardAccess(id, userId);
+  return access !== null && isAdminRole(access.role);
 }
 
 export async function GET(_request: Request, { params }: RouteContext) {
@@ -21,7 +22,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
   const { id } = await params;
   try {
-    if (!(await requireOwnedBoard(id, session.user.id))) {
+    if (!(await requireBoardAdmin(id, session.user.id))) {
       return apiError('NOT_FOUND', 'Board not found', 404);
     }
     return apiSuccess(await listShareLinks(id));
@@ -47,7 +48,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const { id } = await params;
   try {
-    if (!(await requireOwnedBoard(id, session.user.id))) {
+    if (!(await requireBoardAdmin(id, session.user.id))) {
       return apiError('NOT_FOUND', 'Board not found', 404);
     }
     const link = await createShareLink(
@@ -71,7 +72,7 @@ export async function DELETE(request: Request, { params }: RouteContext) {
 
   const { id } = await params;
   try {
-    if (!(await requireOwnedBoard(id, session.user.id))) {
+    if (!(await requireBoardAdmin(id, session.user.id))) {
       return apiError('NOT_FOUND', 'Board not found', 404);
     }
     const revoked = await revokeShareLink(linkId, id);
