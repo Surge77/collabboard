@@ -26,6 +26,7 @@ model User {
   createdBoards    Board[]              @relation("BoardCreator")
   orgMemberships   OrganizationMember[]
   boardMemberships BoardMember[]
+  comments         Comment[]
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 }
@@ -159,6 +160,7 @@ model Board {
   members        BoardMember[]
   snapshot       BoardSnapshot?
   versions       BoardVersion[]
+  comments       Comment[]
   shareLinks     ShareLink[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -168,6 +170,29 @@ model Board {
   @@index([folderId])
   // Hot dashboard query: boards in an org ordered by recency.
   @@index([orgId, updatedAt])
+}
+
+// A comment anchored to a point on the canvas, with threaded replies. A root
+// comment carries x/y page coordinates and no parent; a reply carries a parentId
+// and no coordinates (it inherits the root's anchor).
+model Comment {
+  id        String    @id @default(cuid())
+  boardId   String
+  board     Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  x         Float?
+  y         Float?
+  resolved  Boolean   @default(false)
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([boardId])
+  @@index([parentId])
 }
 
 // Append-only version history for a board's canvas. Distinct from the single-row
