@@ -7,6 +7,7 @@ import { useSelf } from '@liveblocks/react/suspense';
 import { AiPanel } from '@/components/board/AiPanel';
 import { Avatars } from '@/components/board/Avatars';
 import { ColorToggle } from '@/components/board/ColorToggle';
+import { Comments } from '@/components/board/Comments';
 import { ExportMenu } from '@/components/board/ExportMenu';
 import { Reactions } from '@/components/board/Reactions';
 import { useYjsStore } from '@/components/board/useYjsStore';
@@ -66,6 +67,9 @@ export function CollabCanvas({ boardId, role }: CollabCanvasProps) {
         <ExportMenu />
         {/* Ephemeral emotes — everyone in the room can react, including viewers. */}
         <Reactions />
+        {/* Canvas comments — pins are visible to everyone; the compose toggle
+            only appears for commenter+ (gated inside the component). */}
+        <Comments boardId={boardId} role={role} />
       </Tldraw>
     </div>
   );
