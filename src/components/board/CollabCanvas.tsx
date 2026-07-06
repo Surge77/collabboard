@@ -8,8 +8,11 @@ import { AiPanel } from '@/components/board/AiPanel';
 import { Avatars } from '@/components/board/Avatars';
 import { ColorToggle } from '@/components/board/ColorToggle';
 import { Comments } from '@/components/board/Comments';
+import { CursorChat } from '@/components/board/CursorChat';
 import { ExportMenu } from '@/components/board/ExportMenu';
+import { FacilitationTimer } from '@/components/board/FacilitationTimer';
 import { Reactions } from '@/components/board/Reactions';
+import { VotePoll } from '@/components/board/VotePoll';
 import { useYjsStore } from '@/components/board/useYjsStore';
 import { VersionHistory } from '@/components/board/VersionHistory';
 import { canEditRole } from '@/lib/board-roles';
@@ -67,6 +70,11 @@ export function CollabCanvas({ boardId, role }: CollabCanvasProps) {
         <ExportMenu />
         {/* Ephemeral emotes — everyone in the room can react, including viewers. */}
         <Reactions />
+        {/* Facilitation kit (all ephemeral broadcast): shared timer (control
+            gated to editors), cursor chat ("/"), live temperature-check vote. */}
+        <FacilitationTimer canControl={canEdit} />
+        <CursorChat />
+        <VotePoll />
         {/* Canvas comments — pins are visible to everyone; the compose toggle
             only appears for commenter+ (gated inside the component). */}
         <Comments boardId={boardId} role={role} />
