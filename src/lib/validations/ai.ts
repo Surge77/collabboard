@@ -46,6 +46,20 @@ export const analyzeInputSchema = z.object({
   shapes: z.array(analyzeShapeSchema).max(MAX_INPUT_SHAPES),
 });
 
+const ACTION_ITEM_MAX = 160;
+const MAX_ACTION_ITEMS = 20;
+
+// Same shape input as analyze; the model reads the board's text and returns a
+// short list of action items. Only bounded strings (no numeric fields) so the
+// structured-output number-blowup hazard cannot occur.
+export const actionItemsInputSchema = analyzeInputSchema;
+
+export const actionItemsSchema = z.object({
+  items: z.array(z.string().min(1).max(ACTION_ITEM_MAX)).max(MAX_ACTION_ITEMS),
+});
+
+export type ActionItems = z.infer<typeof actionItemsSchema>;
+
 // The model returns a node-link GRAPH, never coordinates. Asking Gemini for
 // pixel x/y produced pathological numbers (hundreds of digits) that overran
 // maxOutputTokens and truncated the JSON; layout is now computed deterministically
