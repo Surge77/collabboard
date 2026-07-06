@@ -24,6 +24,9 @@ export function AiPanel({ boardId }: { boardId: string }) {
   const [busy, setBusy] = useState<Busy>('idle');
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // When set, Generate routes through the AI participant: the server writes the
+  // diagram into the live canvas so it appears for everyone, not just this client.
+  const [live, setLive] = useState(false);
 
   function addTemplate(id: TemplateId) {
     if (busy !== 'idle') return;
@@ -42,7 +45,10 @@ export function AiPanel({ boardId }: { boardId: string }) {
     setBusy('generating');
     setError(null);
     try {
-      const res = await fetch('/api/ai/generate', {
+      // Live mode: the server writes the diagram into the room's canvas and it
+      // syncs back to this client — so there is no diagram to apply locally.
+      const endpoint = live ? '/api/ai/agent' : '/api/ai/generate';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ boardId, prompt }),
@@ -51,8 +57,10 @@ export function AiPanel({ boardId }: { boardId: string }) {
         setError(await readError(res));
         return;
       }
-      const { data } = (await res.json()) as { data: DiagramLayout };
-      applyDiagram(editor, data);
+      if (!live) {
+        const { data } = (await res.json()) as { data: DiagramLayout };
+        applyDiagram(editor, data);
+      }
       setPrompt('');
     } catch {
       setError('Something went wrong');
@@ -150,6 +158,15 @@ export function AiPanel({ boardId }: { boardId: string }) {
         rows={3}
         className="resize-none rounded-md border border-black/15 px-2 py-1 text-sm text-neutral-900 outline-none focus:border-black/40"
       />
+      <label className="flex items-center gap-2 text-xs text-neutral-600">
+        <input
+          type="checkbox"
+          checked={live}
+          onChange={(e) => setLive(e.target.checked)}
+          className="accent-neutral-900"
+        />
+        Draw live for everyone (AI participant)
+      </label>
       <div className="flex gap-2">
         <button
           type="button"
