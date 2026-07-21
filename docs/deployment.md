@@ -7,8 +7,8 @@ share auth, database, Liveblocks, and AI — only the canvas engine differs.
 
 | Variant | Live URL | Branch | Vercel project | Production branch |
 | ------- | -------- | ------ | -------------- | ----------------- |
-| Excalidraw (MIT, no watermark) | <https://collabboard-excalidraw.vercel.app> | `spike/excalidraw-v2` | `collabboard-excalidraw` | `spike/excalidraw-v2` |
 | tldraw (original) | <https://collaborative-whiteboard-ai.vercel.app> | `main` / `develop` | `collaborative-whiteboard-ai` | `main` |
+| Excalidraw (MIT, no watermark) | <https://collabboard-excalidraw.vercel.app> | `spike/excalidraw-v2` | `collabboard-excalidraw` | `spike/excalidraw-v2` |
 
 Both projects are Git-connected to `Surge77/collabboard`. A push to a project's
 production branch auto-deploys that project. The two projects keep separate

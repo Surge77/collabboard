@@ -10,8 +10,8 @@ summarize what's on the board, and collaborate with live cursors.
 [![CI](https://github.com/Surge77/collabboard/actions/workflows/ci.yml/badge.svg)](https://github.com/Surge77/collabboard/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-**You are on the `excalidraw` variant.**
-[Live demo → collabboard-excalidraw.vercel.app](https://collabboard-excalidraw.vercel.app)
+**Live demos:** [tldraw build](https://collaborative-whiteboard-ai.vercel.app) ·
+[Excalidraw build](https://collabboard-excalidraw.vercel.app)
 
 </div>
 
@@ -19,18 +19,19 @@ summarize what's on the board, and collaborate with live cursors.
 
 ## Live deployments
 
-CollabBoard ships in two canvas variants, deployed independently on Vercel from
-this repo. They share the same auth, database, Liveblocks real-time layer, and AI
-features — only the canvas engine differs.
+CollabBoard ships in **two canvas variants**, each deployed independently on
+Vercel from this repo. They share the same auth, database, Liveblocks real-time
+layer, and AI features — only the canvas engine differs.
 
 | Variant | Canvas | Live URL | Branch | Vercel project |
 | ------- | ------ | -------- | ------ | -------------- |
-| **Excalidraw** _(this branch — MIT, no watermark)_ | [Excalidraw](https://github.com/excalidraw/excalidraw) | <https://collabboard-excalidraw.vercel.app> | `spike/excalidraw-v2` | `collabboard-excalidraw` |
-| tldraw _(original)_ | [tldraw](https://tldraw.dev) (BSL) | <https://collaborative-whiteboard-ai.vercel.app> | `main` / `develop` | `collaborative-whiteboard-ai` |
+| **tldraw** _(original)_ | [tldraw](https://tldraw.dev) (BSL) | <https://collaborative-whiteboard-ai.vercel.app> | `main` / `develop` | `collaborative-whiteboard-ai` |
+| **Excalidraw** _(MIT, no watermark)_ | [Excalidraw](https://github.com/excalidraw/excalidraw) | <https://collabboard-excalidraw.vercel.app> | `spike/excalidraw-v2` | `collabboard-excalidraw` |
 
 The Excalidraw variant exists because tldraw's Business Source License restricts
 commercial whiteboard products and its free tier renders a watermark — Excalidraw
-is MIT with neither limitation.
+is MIT with neither limitation. Each variant's production branch auto-deploys its
+own Vercel project on push. See [`docs/deployment.md`](./docs/deployment.md).
 
 ## Features
 
@@ -43,8 +44,7 @@ is MIT with neither limitation.
 - 🔐 OAuth authentication and persistent boards
 - 📤 Export to PNG / PDF
 
-> Status: **feature-complete Excalidraw port** — render, export (PNG/SVG/PDF),
-> AI generate + analyze, and real-time multi-client sync are all working and
+> AI generate + analyze and real-time multi-client sync are all working and
 > covered by unit + two-client E2E tests. See [`docs/roadmap.md`](./docs/roadmap.md).
 
 ## Tech stack
@@ -56,7 +56,7 @@ is MIT with neither limitation.
 | Styling      | Tailwind CSS v4                          |
 | Auth         | Auth.js v5 (Google + GitHub OAuth)       |
 | Database     | Neon PostgreSQL + Prisma 6               |
-| Canvas       | Excalidraw (MIT)                         |
+| Canvas       | tldraw                                   |
 | Real-time    | Liveblocks (CRDT, presence, storage)     |
 | AI           | Vercel AI SDK + Google Gemini            |
 | Testing      | Vitest + Playwright                      |
@@ -90,8 +90,10 @@ lint, type-check, and tests.
 
 ## Licensing note
 
-This project's own code is MIT (see [LICENSE](./LICENSE)). This variant uses
-[**Excalidraw**](https://github.com/excalidraw/excalidraw), which is also **MIT
-licensed** — no commercial restriction and no watermark. This is the key reason
-this variant exists alongside the original tldraw build (tldraw ships under a
-Business Source License that restricts commercial whiteboard products).
+This project's own code is MIT (see [LICENSE](./LICENSE)). It depends on
+[**tldraw**](https://github.com/tldraw/tldraw/blob/main/LICENSE.md), which ships
+under a **Business Source License** restricting commercial whiteboard products.
+That is fine for this portfolio project; review tldraw's license before any
+commercial use. For an MIT, watermark-free alternative, see the **Excalidraw
+variant** on branch [`spike/excalidraw-v2`](https://github.com/Surge77/collabboard/tree/spike/excalidraw-v2)
+(live at <https://collabboard-excalidraw.vercel.app>).
