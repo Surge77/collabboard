@@ -2,10 +2,12 @@
 
 import dynamic from 'next/dynamic';
 
+import type { BoardRole } from '@/types/board';
+
 interface CanvasProps {
   roomId: string;
   boardId: string;
-  canEdit: boolean;
+  role: BoardRole;
   shareToken?: string;
 }
 
@@ -29,6 +31,6 @@ const Room = dynamic(() => import('@/components/board/Room').then((m) => m.Room)
   loading: () => <CanvasSkeleton />,
 });
 
-export function Canvas({ roomId, boardId, canEdit, shareToken }: CanvasProps) {
-  return <Room roomId={roomId} boardId={boardId} canEdit={canEdit} shareToken={shareToken} />;
+export function Canvas({ roomId, boardId, role, shareToken }: CanvasProps) {
+  return <Room roomId={roomId} boardId={boardId} role={role} shareToken={shareToken} />;
 }

@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }));
-vi.mock('@/lib/boards', () => ({ getBoard: vi.fn() }));
+vi.mock('@/lib/authz', () => ({
+  resolveBoardAccess: vi.fn(),
+  canEditRole: (role: string) => role === 'admin' || role === 'editor',
+}));
 vi.mock('@/lib/rate-limit', () => ({ rateLimit: vi.fn(async () => true) }));
 vi.mock('ai', () => ({
   generateObject: vi.fn(async () => ({
@@ -19,7 +22,7 @@ vi.mock('ai', () => ({
 import { generateObject } from 'ai';
 
 import { auth } from '@/lib/auth';
-import { getBoard } from '@/lib/boards';
+import { resolveBoardAccess } from '@/lib/authz';
 import { rateLimit } from '@/lib/rate-limit';
 import { POST } from '@/app/api/ai/generate/route';
 
@@ -67,19 +70,22 @@ describe('POST /api/ai/generate', () => {
 
   it('returns 404 when the board is not owned', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue(null);
+    vi.mocked(resolveBoardAccess).mockResolvedValue(null);
     expect((await POST(req({ boardId: CUID, prompt: 'draw a flow' }))).status).toBe(404);
     expect(generateObject).not.toHaveBeenCalled();
   });
 
   it('returns a positioned diagram for an owned board', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue({
-      id: CUID,
-      title: 'B',
-      isPublic: false,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
+    vi.mocked(resolveBoardAccess).mockResolvedValue({
+      role: 'editor',
+      board: {
+        id: CUID,
+        title: 'B',
+        isPublic: false,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
     });
     const res = await POST(req({ boardId: CUID, prompt: 'draw a flow' }));
     expect(res.status).toBe(200);
@@ -95,12 +101,15 @@ describe('POST /api/ai/generate', () => {
 
   it('returns 500 when the model call fails', async () => {
     signedIn();
-    vi.mocked(getBoard).mockResolvedValue({
-      id: CUID,
-      title: 'B',
-      isPublic: false,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
+    vi.mocked(resolveBoardAccess).mockResolvedValue({
+      role: 'editor',
+      board: {
+        id: CUID,
+        title: 'B',
+        isPublic: false,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
     });
     vi.mocked(generateObject).mockRejectedValueOnce(new Error('quota exceeded'));
     const res = await POST(req({ boardId: CUID, prompt: 'draw a flow' }));

@@ -5,7 +5,7 @@ import { notFound, redirect } from 'next/navigation';
 import { Canvas } from '@/components/board/Canvas';
 import { ShareDialog } from '@/components/board/ShareDialog';
 import { auth } from '@/lib/auth';
-import { canEditRole, resolveBoardAccess } from '@/lib/authz';
+import { canEditRole, isAdminRole, resolveBoardAccess } from '@/lib/authz';
 import { boardRoomId } from '@/lib/liveblocks';
 
 // Strip the Referer header so a `?t=<token>` share link is never leaked to
@@ -29,7 +29,7 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
 
   const { board, role } = access;
   const canEdit = canEditRole(role);
-  const isOwner = role === 'owner';
+  const isAdmin = isAdminRole(role);
 
   return (
     <main className="relative flex h-dvh w-full flex-col">
@@ -44,18 +44,18 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
           </span>
         ) : null}
         <div className="ml-auto">
-          {isOwner ? <ShareDialog boardId={board.id} initialIsPublic={board.isPublic} /> : null}
+          {isAdmin ? <ShareDialog boardId={board.id} initialIsPublic={board.isPublic} /> : null}
         </div>
       </header>
       <div className="relative isolate flex-1">
         {/* Each board maps to its own Liveblocks room; the auth endpoint grants
-            edit access to the owner and share-link editors, read-only to everyone
-            else with access. The share token (if any) is forwarded so the realtime
-            token matches the page's access decision. */}
+            edit access to admins and editors, read-only to everyone else with
+            access. The share token (if any) is forwarded so the realtime token
+            matches the page's access decision. */}
         <Canvas
           roomId={boardRoomId(board.id)}
           boardId={board.id}
-          canEdit={canEdit}
+          role={role}
           shareToken={shareToken}
         />
       </div>

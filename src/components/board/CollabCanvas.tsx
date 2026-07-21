@@ -7,9 +7,16 @@ import { useSelf } from '@liveblocks/react/suspense';
 import { AiPanel } from '@/components/board/AiPanel';
 import { Avatars } from '@/components/board/Avatars';
 import { ColorToggle } from '@/components/board/ColorToggle';
+import { Comments } from '@/components/board/Comments';
+import { CursorChat } from '@/components/board/CursorChat';
 import { ExportMenu } from '@/components/board/ExportMenu';
+import { FacilitationTimer } from '@/components/board/FacilitationTimer';
 import { Reactions } from '@/components/board/Reactions';
+import { VotePoll } from '@/components/board/VotePoll';
 import { useYjsStore } from '@/components/board/useYjsStore';
+import { VersionHistory } from '@/components/board/VersionHistory';
+import { canEditRole } from '@/lib/board-roles';
+import type { BoardRole } from '@/types/board';
 
 // Undefined on localhost is fine — tldraw only enforces a license at production
 // runtime. The Hobby key is added at deploy time.
@@ -17,10 +24,11 @@ const licenseKey = process.env.NEXT_PUBLIC_TLDRAW_LICENSE_KEY;
 
 interface CollabCanvasProps {
   boardId: string;
-  canEdit: boolean;
+  role: BoardRole;
 }
 
-export function CollabCanvas({ boardId, canEdit }: CollabCanvasProps) {
+export function CollabCanvas({ boardId, role }: CollabCanvasProps) {
+  const canEdit = canEditRole(role);
   // Selectors (not bare useSelf) avoid re-rendering on every presence change.
   const id = useSelf((me) => me.id);
   const info = useSelf((me) => me.info);
@@ -39,6 +47,11 @@ export function CollabCanvas({ boardId, canEdit }: CollabCanvasProps) {
         onMount={(editor) => {
           // Public viewers (non-owners) get a read-only canvas.
           if (!canEdit) editor.updateInstanceState({ isReadonly: true });
+          // Test-only handle for the sync E2E to read the scene. Gated by an
+          // env flag so it never ships in a normal build.
+          if (process.env.NEXT_PUBLIC_E2E_HOOKS === '1') {
+            (window as unknown as { __tlEditor?: typeof editor }).__tlEditor = editor;
+          }
         }}
         components={{
           StylePanel: () => (
@@ -50,12 +63,21 @@ export function CollabCanvas({ boardId, canEdit }: CollabCanvasProps) {
         }}
       >
         {canEdit ? <AiPanel boardId={boardId} /> : null}
+        {canEdit ? <VersionHistory boardId={boardId} /> : null}
         {canEdit ? <ColorToggle /> : null}
         {/* Export is available to viewers too: read access implies the right to
             export what you can already see. Fully client-side, no server call. */}
         <ExportMenu />
         {/* Ephemeral emotes — everyone in the room can react, including viewers. */}
         <Reactions />
+        {/* Facilitation kit (all ephemeral broadcast): shared timer (control
+            gated to editors), cursor chat ("/"), live temperature-check vote. */}
+        <FacilitationTimer canControl={canEdit} />
+        <CursorChat />
+        <VotePoll />
+        {/* Canvas comments — pins are visible to everyone; the compose toggle
+            only appears for commenter+ (gated inside the component). */}
+        <Comments boardId={boardId} role={role} />
       </Tldraw>
     </div>
   );

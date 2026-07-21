@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 
 import { BoardCard } from '@/components/board/BoardCard';
+import { Onboarding } from '@/components/board/Onboarding';
 import type { BoardSummary } from '@/types/board';
 
 interface BoardListProps {
@@ -132,17 +133,23 @@ export function BoardList({ initialBoards }: BoardListProps) {
     }
   }
 
+  const isEmpty = boards.length === 0;
+
   return (
     <section className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-4">
-        <button
-          type="button"
-          onClick={createBoard}
-          disabled={isCreating}
-          className="btn btn-accent !px-5 !py-2.5 text-sm"
-        >
-          {isCreating ? 'Creating…' : '+ New board'}
-        </button>
+        {isEmpty ? (
+          <span />
+        ) : (
+          <button
+            type="button"
+            onClick={createBoard}
+            disabled={isCreating}
+            className="btn btn-accent !px-5 !py-2.5 text-sm"
+          >
+            {isCreating ? 'Creating…' : '+ New board'}
+          </button>
+        )}
         {error ? (
           <p role="alert" className="text-sm font-semibold text-red-500">
             {error}
@@ -150,11 +157,8 @@ export function BoardList({ initialBoards }: BoardListProps) {
         ) : null}
       </div>
 
-      {boards.length === 0 ? (
-        <div className="border-foreground/30 dotgrid flex h-64 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed">
-          <p className="font-hand text-accent -rotate-2 text-3xl">a blank canvas awaits</p>
-          <p className="text-ink-soft text-sm">Hit “New board” to start your first one.</p>
-        </div>
+      {isEmpty ? (
+        <Onboarding onCreate={createBoard} isCreating={isCreating} />
       ) : (
         <div className="grid gap-6 px-1 py-2 sm:grid-cols-2 lg:grid-cols-3">
           {boards.map((board, i) => (

@@ -44,6 +44,9 @@ own Vercel project on push. See [`docs/deployment.md`](./docs/deployment.md).
 - 🔐 OAuth authentication and persistent boards
 - 📤 Export to PNG / PDF
 
+> AI generate + analyze and real-time multi-client sync are all working and
+> covered by unit + two-client E2E tests. See [`docs/roadmap.md`](./docs/roadmap.md).
+
 ## Tech stack
 
 | Layer        | Choice                                   |

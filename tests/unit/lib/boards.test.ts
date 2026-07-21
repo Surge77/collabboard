@@ -8,7 +8,9 @@ vi.mock('@/lib/db', () => ({
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       updateMany: vi.fn(),
-      deleteMany: vi.fn(),
+    },
+    organization: {
+      upsert: vi.fn(),
     },
   },
 }));
@@ -18,7 +20,7 @@ import {
   createBoard,
   deleteBoard,
   duplicateBoard,
-  getBoard,
+  ensurePersonalOrg,
   listBoards,
   updateBoard,
 } from '@/lib/boards';
@@ -38,20 +40,45 @@ const mockDb = db as unknown as {
     findFirst: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
     updateMany: ReturnType<typeof vi.fn>;
-    deleteMany: ReturnType<typeof vi.fn>;
+  };
+  organization: {
+    upsert: ReturnType<typeof vi.fn>;
   };
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockDb.organization.upsert.mockResolvedValue({ id: 'org1' });
+});
+
+describe('ensurePersonalOrg', () => {
+  it('upserts the personal org keyed by personalForUserId', async () => {
+    expect(await ensurePersonalOrg('u1')).toBe('org1');
+    expect(mockDb.organization.upsert).toHaveBeenCalledWith({
+      where: { personalForUserId: 'u1' },
+      update: {},
+      create: {
+        name: 'Personal',
+        personalForUserId: 'u1',
+        members: { create: { userId: 'u1', role: 'ADMIN' } },
+      },
+    });
+  });
 });
 
 describe('listBoards', () => {
-  it('returns summaries with ISO date strings, newest first', async () => {
+  it('lists created, member, and org boards, excluding soft-deleted', async () => {
     mockDb.board.findMany.mockResolvedValue([board]);
     const result = await listBoards('u1');
     expect(mockDb.board.findMany).toHaveBeenCalledWith({
-      where: { userId: 'u1' },
+      where: {
+        deletedAt: null,
+        OR: [
+          { createdById: 'u1' },
+          { members: { some: { userId: 'u1' } } },
+          { org: { members: { some: { userId: 'u1' } } } },
+        ],
+      },
       orderBy: { updatedAt: 'desc' },
     });
     expect(result[0]).toEqual({
@@ -65,85 +92,60 @@ describe('listBoards', () => {
 });
 
 describe('createBoard', () => {
-  it('creates a board scoped to the user', async () => {
+  it('creates a board in the personal org with creator columns in sync', async () => {
     mockDb.board.create.mockResolvedValue(board);
     const result = await createBoard('u1', { title: 'My board' });
     expect(mockDb.board.create).toHaveBeenCalledWith({
-      data: { userId: 'u1', title: 'My board' },
+      data: { userId: 'u1', createdById: 'u1', orgId: 'org1', title: 'My board' },
     });
     expect(result.id).toBe('b1');
   });
 });
 
-describe('getBoard', () => {
-  it('returns the board when the user owns it', async () => {
-    mockDb.board.findFirst.mockResolvedValue(board);
-    expect(await getBoard('b1', 'u1')).not.toBeNull();
-    expect(mockDb.board.findFirst).toHaveBeenCalledWith({
-      where: { id: 'b1', userId: 'u1' },
-    });
-  });
-
-  it('returns null when the board is not owned', async () => {
-    mockDb.board.findFirst.mockResolvedValue(null);
-    expect(await getBoard('b1', 'intruder')).toBeNull();
-  });
-});
-
 describe('updateBoard', () => {
-  it('updates an owned board atomically via updateMany', async () => {
+  it('updates a live board atomically via updateMany', async () => {
     mockDb.board.updateMany.mockResolvedValue({ count: 1 });
     mockDb.board.findFirst.mockResolvedValue({ ...board, title: 'Renamed' });
-    const result = await updateBoard('b1', 'u1', { title: 'Renamed' });
+    const result = await updateBoard('b1', { title: 'Renamed' });
     expect(mockDb.board.updateMany).toHaveBeenCalledWith({
-      where: { id: 'b1', userId: 'u1' },
-      data: { title: 'Renamed', isPublic: undefined },
+      where: { id: 'b1', deletedAt: null },
+      data: { title: 'Renamed', isPublic: undefined, lastActivityAt: expect.any(Date) },
     });
     expect(result?.title).toBe('Renamed');
   });
 
-  it('returns null without re-fetching when not owned', async () => {
+  it('returns null without re-fetching for a missing or deleted board', async () => {
     mockDb.board.updateMany.mockResolvedValue({ count: 0 });
-    const result = await updateBoard('b1', 'intruder', { title: 'x' });
+    const result = await updateBoard('b1', { title: 'x' });
     expect(result).toBeNull();
     expect(mockDb.board.findFirst).not.toHaveBeenCalled();
   });
 });
 
 describe('duplicateBoard', () => {
-  it('clones an owned board into a fresh private "(Copy)"', async () => {
-    mockDb.board.findFirst.mockResolvedValue(board);
+  it('creates a fresh private "(Copy)" in the caller’s personal org', async () => {
     mockDb.board.create.mockResolvedValue({ ...board, id: 'b2', title: 'My board (Copy)' });
-    const result = await duplicateBoard('b1', 'u1');
-    expect(mockDb.board.findFirst).toHaveBeenCalledWith({
-      where: { id: 'b1', userId: 'u1' },
-    });
+    const result = await duplicateBoard('My board', 'u1');
     expect(mockDb.board.create).toHaveBeenCalledWith({
-      data: { userId: 'u1', title: 'My board (Copy)' },
+      data: { userId: 'u1', createdById: 'u1', orgId: 'org1', title: 'My board (Copy)' },
     });
-    expect(result?.id).toBe('b2');
-    expect(result?.title).toBe('My board (Copy)');
-  });
-
-  it('returns null and never creates when the source is not owned', async () => {
-    mockDb.board.findFirst.mockResolvedValue(null);
-    const result = await duplicateBoard('b1', 'intruder');
-    expect(result).toBeNull();
-    expect(mockDb.board.create).not.toHaveBeenCalled();
+    expect(result.id).toBe('b2');
+    expect(result.title).toBe('My board (Copy)');
   });
 });
 
 describe('deleteBoard', () => {
-  it('returns true when a board was deleted', async () => {
-    mockDb.board.deleteMany.mockResolvedValue({ count: 1 });
-    expect(await deleteBoard('b1', 'u1')).toBe(true);
-    expect(mockDb.board.deleteMany).toHaveBeenCalledWith({
-      where: { id: 'b1', userId: 'u1' },
+  it('soft-deletes and returns true when a board matched', async () => {
+    mockDb.board.updateMany.mockResolvedValue({ count: 1 });
+    expect(await deleteBoard('b1')).toBe(true);
+    expect(mockDb.board.updateMany).toHaveBeenCalledWith({
+      where: { id: 'b1', deletedAt: null },
+      data: { deletedAt: expect.any(Date) },
     });
   });
 
-  it('returns false when nothing matched', async () => {
-    mockDb.board.deleteMany.mockResolvedValue({ count: 0 });
-    expect(await deleteBoard('b1', 'intruder')).toBe(false);
+  it('returns false when nothing matched (missing or already deleted)', async () => {
+    mockDb.board.updateMany.mockResolvedValue({ count: 0 });
+    expect(await deleteBoard('b1')).toBe(false);
   });
 });

@@ -22,7 +22,7 @@ vi.mock('@liveblocks/node', () => ({
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }));
 vi.mock('@/lib/authz', () => ({
   resolveBoardAccess: vi.fn(),
-  canEditRole: (role: string) => role === 'owner' || role === 'editor',
+  canEditRole: (role: string) => role === 'admin' || role === 'editor',
 }));
 vi.mock('@/lib/rate-limit', () => ({ rateLimit: vi.fn(async () => true) }));
 
@@ -94,7 +94,7 @@ describe('POST /api/liveblocks-auth', () => {
 
   it('grants the owner full (edit) access to their room', async () => {
     signedIn();
-    vi.mocked(resolveBoardAccess).mockResolvedValue({ board, role: 'owner' });
+    vi.mocked(resolveBoardAccess).mockResolvedValue({ board, role: 'admin' });
     const res = await POST(req({ room: ROOM }));
     expect(res.status).toBe(200);
     expect(prepareSession).toHaveBeenCalledWith('u1', expect.anything());
@@ -132,7 +132,7 @@ describe('POST /api/liveblocks-auth', () => {
   it('returns 500 when the realtime secret is not configured', async () => {
     signedIn();
     vi.stubEnv('LIVEBLOCKS_SECRET_KEY', '');
-    vi.mocked(resolveBoardAccess).mockResolvedValue({ board, role: 'owner' });
+    vi.mocked(resolveBoardAccess).mockResolvedValue({ board, role: 'admin' });
     const res = await POST(req({ room: ROOM }));
     expect(res.status).toBe(500);
     expect(allow).not.toHaveBeenCalled();

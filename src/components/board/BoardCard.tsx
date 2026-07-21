@@ -101,7 +101,7 @@ export function BoardCard({
           type="button"
           disabled={isPending}
           onClick={() => onDuplicate(board.id)}
-          className="text-foreground/60 hover:text-foreground text-xs font-medium disabled:opacity-40"
+          className="text-ink-soft hover:text-accent text-xs font-semibold disabled:opacity-40"
         >
           Duplicate
         </button>
