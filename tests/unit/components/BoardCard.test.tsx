@@ -18,14 +18,16 @@ function renderCard(overrides: Partial<Parameters<typeof BoardCard>[0]> = {}) {
   const onDuplicate = vi.fn();
   const onDelete = vi.fn();
   render(
-    <BoardCard
-      board={board}
-      isPending={false}
-      onRename={onRename}
-      onDuplicate={onDuplicate}
-      onDelete={onDelete}
-      {...overrides}
-    />
+    <ul>
+      <BoardCard
+        board={board}
+        isPending={false}
+        onRename={onRename}
+        onDuplicate={onDuplicate}
+        onDelete={onDelete}
+        {...overrides}
+      />
+    </ul>
   );
   return { onRename, onDuplicate, onDelete };
 }
@@ -39,7 +41,7 @@ describe('BoardCard', () => {
   it('calls onRename with the trimmed new title on Enter', async () => {
     const user = userEvent.setup();
     const { onRename } = renderCard();
-    await user.click(screen.getByRole('button', { name: 'Rename' }));
+    await user.click(screen.getByRole('button', { name: 'Rename My board' }));
     const input = screen.getByLabelText('Board title');
     await user.clear(input);
     await user.type(input, 'Renamed{Enter}');
@@ -49,7 +51,7 @@ describe('BoardCard', () => {
   it('does not call onRename when the title is unchanged', async () => {
     const user = userEvent.setup();
     const { onRename } = renderCard();
-    await user.click(screen.getByRole('button', { name: 'Rename' }));
+    await user.click(screen.getByRole('button', { name: 'Rename My board' }));
     await user.type(screen.getByLabelText('Board title'), '{Enter}');
     expect(onRename).not.toHaveBeenCalled();
   });
@@ -57,21 +59,26 @@ describe('BoardCard', () => {
   it('calls onDelete when Delete is clicked', async () => {
     const user = userEvent.setup();
     const { onDelete } = renderCard();
-    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await user.click(screen.getByRole('button', { name: 'Delete My board' }));
     expect(onDelete).toHaveBeenCalledWith('b1');
   });
 
   it('calls onDuplicate when Duplicate is clicked', async () => {
     const user = userEvent.setup();
     const { onDuplicate } = renderCard();
-    await user.click(screen.getByRole('button', { name: 'Duplicate' }));
+    await user.click(screen.getByRole('button', { name: 'Duplicate My board' }));
     expect(onDuplicate).toHaveBeenCalledWith('b1');
+  });
+
+  it('shows the last edit date in a fixed, hydration-safe format', () => {
+    renderCard();
+    expect(screen.getAllByText(/Jan 2, 2026/).length).toBeGreaterThan(0);
   });
 
   it('disables actions while pending', () => {
     renderCard({ isPending: true });
-    expect(screen.getByRole('button', { name: 'Rename' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Duplicate' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Rename My board' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Duplicate My board' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Delete My board' })).toBeDisabled();
   });
 });

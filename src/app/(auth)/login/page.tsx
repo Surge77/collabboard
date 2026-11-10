@@ -1,37 +1,57 @@
 import { redirect } from 'next/navigation';
 
 import { SiteHeader } from '@/components/site/SiteHeader';
+import { buttonClass } from '@/components/ui/Button';
 import { auth, signIn } from '@/lib/auth';
+import { signInErrorMessage, toCallbackPath } from '@/lib/sign-in';
 
-export default async function LoginPage() {
+interface LoginPageProps {
+  searchParams: Promise<{ callbackUrl?: string | string[]; error?: string | string[] }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { callbackUrl, error } = await searchParams;
+  // Invited users arrive with the board URL as callbackUrl; send them back
+  // there, never off-site (toCallbackPath keeps only same-site paths).
+  const redirectTo = toCallbackPath(callbackUrl);
   const session = await auth();
-  if (session) redirect('/dashboard');
+  if (session) redirect(redirectTo);
+
+  const errorMessage = signInErrorMessage(error);
+  const isInvite = redirectTo.startsWith('/board/');
 
   return (
     <div className="flex min-h-full flex-col">
       <SiteHeader />
-      <main className="dotgrid flex flex-1 flex-col items-center justify-center px-6 py-12">
-        <div className="bg-surface border-foreground sketch lift relative w-full max-w-sm border-2 p-8">
-          {/* A strip of tape pinning the card to the board. */}
-          <span className="bg-highlight absolute -top-3 left-1/2 h-6 w-24 -translate-x-1/2 -rotate-2 opacity-80" />
+      <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
+        <div className="border-line bg-surface w-full max-w-sm rounded-lg border p-8">
+          <h1 className="text-foreground text-xl font-semibold tracking-[-0.01em]">
+            Sign in to CollabBoard
+          </h1>
+          <p className="text-ink-soft mt-1.5 text-sm">
+            {isInvite
+              ? 'Sign in to open the board you were invited to.'
+              : 'Continue with the account your team uses.'}
+          </p>
 
-          <div className="text-center">
-            <p className="font-hand text-accent -rotate-1 text-2xl">welcome back</p>
-            <h1 className="text-foreground mt-1 text-3xl font-extrabold tracking-tight">
-              Sign in to CollabBoard
-            </h1>
-            <p className="text-ink-soft mt-2 text-sm">Pick a provider and start drawing.</p>
-          </div>
+          {errorMessage ? (
+            <p
+              role="alert"
+              className="border-danger/40 bg-danger-soft text-danger mt-5 rounded-md border px-3 py-2 text-[13px]"
+            >
+              {errorMessage}
+            </p>
+          ) : null}
 
-          <div className="mt-8 flex flex-col gap-3">
+          <div className="mt-6 flex flex-col gap-2">
             <form
               action={async () => {
                 'use server';
-                await signIn('google', { redirectTo: '/dashboard' });
+                await signIn('google', { redirectTo });
               }}
             >
-              <button type="submit" className="btn btn-ghost w-full !justify-center text-sm">
-                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+              <button type="submit" className={`${buttonClass('secondary')} w-full`}>
+                <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true">
                   <path
                     fill="#4285F4"
                     d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z"
@@ -55,13 +75,13 @@ export default async function LoginPage() {
             <form
               action={async () => {
                 'use server';
-                await signIn('github', { redirectTo: '/dashboard' });
+                await signIn('github', { redirectTo });
               }}
             >
-              <button type="submit" className="btn btn-ink w-full !justify-center text-sm">
+              <button type="submit" className={`${buttonClass('secondary')} w-full`}>
                 <svg
-                  width="18"
-                  height="18"
+                  width="16"
+                  height="16"
                   viewBox="0 0 16 16"
                   fill="currentColor"
                   aria-hidden="true"

@@ -1,15 +1,10 @@
 import type { Metadata } from 'next';
-import { Bricolage_Grotesque, Caveat, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
 
 import './globals.css';
 
-const bricolage = Bricolage_Grotesque({
-  variable: '--font-bricolage',
-  subsets: ['latin'],
-});
-
-const caveat = Caveat({
-  variable: '--font-caveat',
+const geist = Geist({
+  variable: '--font-geist',
   subsets: ['latin'],
 });
 
@@ -55,7 +50,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${bricolage.variable} ${caveat.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geist.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

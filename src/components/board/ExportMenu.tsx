@@ -1,9 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { useEditor } from 'tldraw';
+import { useEditor, useValue } from 'tldraw';
 
+import { Button } from '@/components/ui/Button';
 import { injectSvgWatermark, watermarkPlacement, WATERMARK_TEXT } from '@/lib/watermark';
+
+// Some browsers cancel a download whose object URL is revoked synchronously.
+const REVOKE_DELAY_MS = 1000;
+const FILE_BASE = 'whiteboard';
+
+type Format = 'png' | 'svg' | 'pdf';
+
+const FORMATS: { id: Format; label: string; hint: string }[] = [
+  { id: 'png', label: 'PNG image', hint: 'Best for slides and chat.' },
+  { id: 'svg', label: 'SVG vector', hint: 'Scales cleanly; edit in design tools.' },
+  { id: 'pdf', label: 'PDF document', hint: 'One page, ready to print or attach.' },
+];
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -11,7 +24,7 @@ function downloadBlob(blob: Blob, filename: string) {
   a.href = url;
   a.download = filename;
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS);
 }
 
 // Rasterises the exported PNG onto a canvas and stamps the watermark bottom-right.
@@ -45,76 +58,93 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-const FILE_BASE = 'whiteboard';
-
+// Panel body for the Export tab. Fully client-side; available to viewers too,
+// since read access implies the right to export what you can already see.
 export function ExportMenu() {
   const editor = useEditor();
-  const [busy, setBusy] = useState(false);
-
-  function shapeIds() {
-    return [...editor.getCurrentPageShapeIds()];
-  }
+  const shapeCount = useValue('shapeCount', () => editor.getCurrentPageShapeIds().size, [editor]);
+  const [busy, setBusy] = useState<Format | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const isEmpty = shapeCount === 0;
 
   async function exportImage(format: 'png' | 'svg') {
-    const ids = shapeIds();
-    if (ids.length === 0 || busy) return;
-    setBusy(true);
-    try {
-      const { blob, width, height } = await editor.toImage(ids, { format, background: true });
-      const stamped =
-        format === 'png'
-          ? await watermarkPng(blob, width, height)
-          : await watermarkSvg(blob, width, height);
-      downloadBlob(stamped, `${FILE_BASE}.${format}`);
-    } finally {
-      setBusy(false);
-    }
+    const { blob, width, height } = await editor.toImage([...editor.getCurrentPageShapeIds()], {
+      format,
+      background: true,
+    });
+    const stamped =
+      format === 'png'
+        ? await watermarkPng(blob, width, height)
+        : await watermarkSvg(blob, width, height);
+    downloadBlob(stamped, `${FILE_BASE}.${format}`);
   }
 
   async function exportPdf() {
-    const ids = shapeIds();
-    if (ids.length === 0 || busy) return;
-    setBusy(true);
+    const { blob, width, height } = await editor.toImage([...editor.getCurrentPageShapeIds()], {
+      format: 'png',
+      background: true,
+    });
+    const dataUrl = await blobToDataUrl(blob);
+    // Dynamic import keeps jsPDF (~90KB gzip) out of the initial bundle.
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF({
+      orientation: width >= height ? 'landscape' : 'portrait',
+      unit: 'px',
+      format: [width, height],
+    });
+    doc.addImage(dataUrl, 'PNG', 0, 0, width, height);
+    const { fontSize, x, y } = watermarkPlacement(width, height);
+    doc.setFontSize(fontSize);
+    // jsPDF has no per-string opacity without the GState plugin; a mid-grey
+    // reads as a subtle watermark against a white export background.
+    doc.setTextColor(150, 150, 150);
+    doc.text(WATERMARK_TEXT, x, y, { align: 'right' });
+    doc.save(`${FILE_BASE}.pdf`);
+  }
+
+  async function run(format: Format) {
+    if (isEmpty || busy) return;
+    setBusy(format);
+    setError(null);
     try {
-      const { blob, width, height } = await editor.toImage(ids, {
-        format: 'png',
-        background: true,
-      });
-      const dataUrl = await blobToDataUrl(blob);
-      // Dynamic import keeps jsPDF (~90KB gzip) out of the initial bundle.
-      const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF({
-        orientation: width >= height ? 'landscape' : 'portrait',
-        unit: 'px',
-        format: [width, height],
-      });
-      doc.addImage(dataUrl, 'PNG', 0, 0, width, height);
-      const { fontSize, x, y } = watermarkPlacement(width, height);
-      doc.setFontSize(fontSize);
-      // jsPDF has no per-string opacity without the GState plugin; a mid-grey
-      // reads as a subtle watermark against a white export background.
-      doc.setTextColor(150, 150, 150);
-      doc.text(WATERMARK_TEXT, x, y, { align: 'right' });
-      doc.save(`${FILE_BASE}.pdf`);
+      if (format === 'pdf') await exportPdf();
+      else await exportImage(format);
+    } catch {
+      setError(`Could not export the ${format.toUpperCase()}. Try again, or try another format.`);
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
-  const btn =
-    'rounded-md border border-black/15 bg-white/95 px-2.5 py-1 text-xs font-medium text-neutral-700 shadow-sm disabled:opacity-40';
-
   return (
-    <div className="pointer-events-auto absolute top-3 left-1/2 z-[300] flex -translate-x-1/2 gap-1.5">
-      <button type="button" className={btn} disabled={busy} onClick={() => exportImage('png')}>
-        PNG
-      </button>
-      <button type="button" className={btn} disabled={busy} onClick={() => exportImage('svg')}>
-        SVG
-      </button>
-      <button type="button" className={btn} disabled={busy} onClick={exportPdf}>
-        PDF
-      </button>
-    </div>
+    <>
+      {isEmpty ? (
+        <p className="text-ink-soft text-[13px]">
+          Draw something first. Empty boards can’t be exported.
+        </p>
+      ) : (
+        <p className="text-ink-soft text-[13px]">
+          Exports every shape on this page with a small CollabBoard watermark.
+        </p>
+      )}
+      <div className="flex flex-col gap-1.5">
+        {FORMATS.map((f) => (
+          <Button
+            key={f.id}
+            onClick={() => void run(f.id)}
+            disabled={isEmpty || busy !== null}
+            className="h-auto! flex-col items-start! gap-0! py-2 text-left"
+          >
+            <span>{busy === f.id ? 'Exporting…' : f.label}</span>
+            <span className="text-ink-soft text-xs font-normal">{f.hint}</span>
+          </Button>
+        ))}
+      </div>
+      {error ? (
+        <p role="alert" className="text-danger text-[13px]">
+          {error}
+        </p>
+      ) : null}
+    </>
   );
 }

@@ -9,11 +9,13 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ action }: SiteHeaderProps) {
   return (
-    <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
-      <Wordmark />
-      <div className="flex items-center gap-3">
-        <ThemeToggle />
-        {action}
+    <header className="border-line bg-surface border-b">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
+        <Wordmark />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {action}
+        </div>
       </div>
     </header>
   );

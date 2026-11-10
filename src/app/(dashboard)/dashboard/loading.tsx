@@ -1,18 +1,30 @@
+const SKELETON_ROWS = 5;
+
+// Mirrors the real page: same header height, width and row shape, so nothing
+// jumps when the boards arrive.
 export default function DashboardLoading() {
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-12">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-2">
-          <div className="bg-foreground/10 h-7 w-40 animate-pulse rounded" />
-          <div className="bg-foreground/10 h-4 w-56 animate-pulse rounded" />
+    <div className="flex min-h-full flex-col" role="status" aria-label="Loading boards">
+      <div className="border-line bg-surface h-14 border-b" />
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
+        <div className="bg-hover h-7 w-28 animate-pulse rounded" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="bg-hover h-9 w-full max-w-xs animate-pulse rounded-md" />
+          <div className="bg-hover h-9 w-28 animate-pulse rounded-md" />
         </div>
-        <div className="bg-foreground/10 h-9 w-28 animate-pulse rounded-lg" />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="border-foreground/10 h-28 animate-pulse rounded-xl border" />
-        ))}
-      </div>
-    </main>
+        <ul className="border-line bg-surface overflow-hidden rounded-lg border">
+          {Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+            <li
+              key={i}
+              className="border-line flex h-14 items-center gap-3 border-b px-3 last:border-b-0"
+            >
+              <div className="bg-hover h-8 w-8 animate-pulse rounded" />
+              <div className="bg-hover h-4 w-48 animate-pulse rounded" />
+              <div className="bg-hover ml-auto h-3 w-20 animate-pulse rounded" />
+            </li>
+          ))}
+        </ul>
+      </main>
+    </div>
   );
 }

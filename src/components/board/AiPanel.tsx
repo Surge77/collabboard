@@ -1,25 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useEditor } from 'tldraw';
 
 import {
   applyActionItems,
   applyDiagram,
   collectShapes,
-  readError,
   tidyBoard,
 } from '@/components/board/ai-canvas';
+import { Button } from '@/components/ui/Button';
+import { LABEL_CLASS, TEXTAREA_CLASS } from '@/components/ui/field';
 import { DIAGRAM_TEMPLATES, templateLayout, type TemplateId } from '@/lib/diagram-templates';
 import type { DiagramLayout } from '@/lib/diagram-layout';
+import { readError } from '@/lib/read-error';
 import type { ActionItems } from '@/lib/validations/ai';
 
 const MAX_ANALYZE_SHAPES = 500;
+const NETWORK_ERROR = 'Could not reach the AI service. Check your connection and try again.';
 
 type Busy = 'idle' | 'generating' | 'analyzing' | 'actions';
 
+const BOARD_ACTIONS: { id: 'analyze' | 'actions' | 'tidy'; label: string; hint: string }[] = [
+  {
+    id: 'analyze',
+    label: 'Summarize board',
+    hint: 'Reads every shape and writes a short summary.',
+  },
+  { id: 'actions', label: 'Extract action items', hint: 'Finds to-dos and adds them as stickies.' },
+  { id: 'tidy', label: 'Tidy up', hint: 'Snaps every shape to the grid.' },
+];
+
+// Panel body for the AI tab. Generate is the primary action; the board actions
+// below it each say what they do, so nothing needs to be guessed.
 export function AiPanel({ boardId }: { boardId: string }) {
   const editor = useEditor();
+  const promptId = useId();
+  const liveId = useId();
   const [prompt, setPrompt] = useState('');
   const [busy, setBusy] = useState<Busy>('idle');
   const [summary, setSummary] = useState<string | null>(null);
@@ -27,26 +44,19 @@ export function AiPanel({ boardId }: { boardId: string }) {
   // When set, Generate routes through the AI participant: the server writes the
   // diagram into the live canvas so it appears for everyone, not just this client.
   const [live, setLive] = useState(false);
+  const idle = busy === 'idle';
 
   function addTemplate(id: TemplateId) {
-    if (busy !== 'idle') return;
+    if (!idle) return;
     setError(null);
     applyDiagram(editor, templateLayout(id));
   }
 
-  function tidy() {
-    if (busy !== 'idle') return;
-    setError(null);
-    tidyBoard(editor);
-  }
-
   async function generate() {
-    if (!prompt.trim() || busy !== 'idle') return;
+    if (!prompt.trim() || !idle) return;
     setBusy('generating');
     setError(null);
     try {
-      // Live mode: the server writes the diagram into the room's canvas and it
-      // syncs back to this client — so there is no diagram to apply locally.
       const endpoint = live ? '/api/ai/agent' : '/api/ai/generate';
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -57,28 +67,27 @@ export function AiPanel({ boardId }: { boardId: string }) {
         setError(await readError(res));
         return;
       }
+      // Live mode: the server writes into the room and it syncs back here.
       if (!live) {
         const { data } = (await res.json()) as { data: DiagramLayout };
         applyDiagram(editor, data);
       }
       setPrompt('');
     } catch {
-      setError('Something went wrong');
+      setError(NETWORK_ERROR);
     } finally {
       setBusy('idle');
     }
   }
 
   async function extractActions() {
-    if (busy !== 'idle') return;
     setBusy('actions');
     setError(null);
     try {
-      const shapes = collectShapes(editor, MAX_ANALYZE_SHAPES);
       const res = await fetch('/api/ai/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ boardId, shapes }),
+        body: JSON.stringify({ boardId, shapes: collectShapes(editor, MAX_ANALYZE_SHAPES) }),
       });
       if (!res.ok) {
         setError(await readError(res));
@@ -86,28 +95,26 @@ export function AiPanel({ boardId }: { boardId: string }) {
       }
       const { data } = (await res.json()) as { data: ActionItems };
       if (data.items.length === 0) {
-        setError('No action items found');
+        setError('No action items found on this board.');
         return;
       }
       applyActionItems(editor, data.items);
     } catch {
-      setError('Something went wrong');
+      setError(NETWORK_ERROR);
     } finally {
       setBusy('idle');
     }
   }
 
   async function analyze() {
-    if (busy !== 'idle') return;
     setBusy('analyzing');
     setError(null);
     setSummary('');
     try {
-      const shapes = collectShapes(editor, MAX_ANALYZE_SHAPES);
       const res = await fetch('/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ boardId, shapes }),
+        body: JSON.stringify({ boardId, shapes: collectShapes(editor, MAX_ANALYZE_SHAPES) }),
       });
       if (!res.ok || !res.body) {
         setSummary(null);
@@ -125,96 +132,115 @@ export function AiPanel({ boardId }: { boardId: string }) {
       }
     } catch {
       setSummary(null);
-      setError('Something went wrong');
+      setError(NETWORK_ERROR);
     } finally {
       setBusy('idle');
     }
   }
 
-  const idle = busy === 'idle';
+  function runBoardAction(id: (typeof BOARD_ACTIONS)[number]['id']) {
+    if (!idle) return;
+    if (id === 'analyze') void analyze();
+    else if (id === 'actions') void extractActions();
+    else {
+      setError(null);
+      tidyBoard(editor);
+    }
+  }
 
   return (
-    <div className="pointer-events-auto absolute top-3 left-3 z-[300] flex w-72 flex-col gap-2 rounded-xl border border-black/10 bg-white/95 p-3 shadow-lg backdrop-blur">
-      <label className="text-xs font-semibold text-neutral-700">AI diagram</label>
+    <>
+      <form
+        className="flex flex-col gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void generate();
+        }}
+      >
+        <label htmlFor={promptId} className={LABEL_CLASS}>
+          Describe a diagram
+        </label>
+        <textarea
+          id={promptId}
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void generate();
+          }}
+          placeholder="e.g. Signup flow: landing, form, email check, dashboard"
+          rows={3}
+          className={TEXTAREA_CLASS}
+        />
+        <div className="flex items-start gap-2">
+          <input
+            id={liveId}
+            type="checkbox"
+            checked={live}
+            onChange={(e) => setLive(e.target.checked)}
+            className="accent-accent mt-0.5 h-4 w-4 shrink-0"
+            aria-describedby={`${liveId}-hint`}
+          />
+          <label htmlFor={liveId} className="text-[13px] leading-snug">
+            <span className="text-foreground font-medium">Draw live for everyone</span>
+            <span id={`${liveId}-hint`} className="text-ink-soft block">
+              The AI draws straight onto the shared board, so everyone sees it appear.
+            </span>
+          </label>
+        </div>
+        <Button type="submit" variant="primary" disabled={!idle || !prompt.trim()}>
+          {busy === 'generating' ? 'Generating…' : 'Generate diagram'}
+        </Button>
+      </form>
 
-      <div className="flex flex-wrap gap-1">
-        {DIAGRAM_TEMPLATES.map((t) => (
+      <section aria-labelledby="ai-templates" className="flex flex-col gap-2">
+        <h3 id="ai-templates" className={LABEL_CLASS}>
+          Or start from a template
+        </h3>
+        <div className="flex flex-wrap gap-1.5">
+          {DIAGRAM_TEMPLATES.map((t) => (
+            <Button key={t.id} size="sm" onClick={() => addTemplate(t.id)} disabled={!idle}>
+              {t.label}
+            </Button>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="ai-board" className="border-line flex flex-col gap-1 border-t pt-4">
+        <h3 id="ai-board" className={`${LABEL_CLASS} mb-1`}>
+          Work with this board
+        </h3>
+        {BOARD_ACTIONS.map((a) => (
           <button
-            key={t.id}
+            key={a.id}
             type="button"
-            onClick={() => addTemplate(t.id)}
+            onClick={() => runBoardAction(a.id)}
             disabled={!idle}
-            className="rounded-md border border-black/15 px-2 py-1 text-xs font-medium text-neutral-700 disabled:opacity-40"
+            className="hover:bg-hover -mx-2 flex flex-col items-start rounded-md px-2 py-1.5 text-left transition-colors duration-150 disabled:opacity-45"
           >
-            {t.label}
+            <span className="text-foreground text-[13px] font-medium">
+              {busy === 'analyzing' && a.id === 'analyze'
+                ? 'Summarizing…'
+                : busy === 'actions' && a.id === 'actions'
+                  ? 'Extracting…'
+                  : a.label}
+            </span>
+            <span className="text-ink-soft text-xs">{a.hint}</span>
           </button>
         ))}
-      </div>
-
-      <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Describe a diagram to generate…"
-        rows={3}
-        className="resize-none rounded-md border border-black/15 px-2 py-1 text-sm text-neutral-900 outline-none focus:border-black/40"
-      />
-      <label className="flex items-center gap-2 text-xs text-neutral-600">
-        <input
-          type="checkbox"
-          checked={live}
-          onChange={(e) => setLive(e.target.checked)}
-          className="accent-neutral-900"
-        />
-        Draw live for everyone (AI participant)
-      </label>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={generate}
-          disabled={!idle || !prompt.trim()}
-          className="flex-1 rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
-        >
-          {busy === 'generating' ? 'Generating…' : 'Generate'}
-        </button>
-        <button
-          type="button"
-          onClick={analyze}
-          disabled={!idle}
-          className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-neutral-700 disabled:opacity-40"
-        >
-          {busy === 'analyzing' ? 'Analyzing…' : 'Analyze'}
-        </button>
-      </div>
-
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={extractActions}
-          disabled={!idle}
-          className="flex-1 rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-neutral-700 disabled:opacity-40"
-        >
-          {busy === 'actions' ? 'Extracting…' : 'Action items'}
-        </button>
-        <button
-          type="button"
-          onClick={tidy}
-          disabled={!idle}
-          className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium text-neutral-700 disabled:opacity-40"
-        >
-          Tidy up
-        </button>
-      </div>
+      </section>
 
       {error ? (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className="text-danger text-[13px]">
           {error}
         </p>
       ) : null}
       {summary !== null && !error ? (
-        <p className="max-h-32 overflow-auto text-xs whitespace-pre-wrap text-neutral-700">
-          {summary || 'Analyzing…'}
-        </p>
+        <div role="status" className="bg-hover rounded-md p-3">
+          <p className="text-foreground text-[13px] leading-relaxed whitespace-pre-wrap">
+            {summary || 'Summarizing…'}
+          </p>
+        </div>
       ) : null}
-    </div>
+    </>
   );
 }

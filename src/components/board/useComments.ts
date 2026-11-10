@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { isCommentsChangedEvent } from '@/lib/comment-events';
 import type { CommentNode } from '@/lib/comments';
 
-interface UseComments {
+export interface UseComments {
   threads: CommentNode[];
   canComment: boolean;
   addComment: (x: number, y: number, body: string) => Promise<boolean>;

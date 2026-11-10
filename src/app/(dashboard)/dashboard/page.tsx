@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 
 import { BoardList } from '@/components/board/BoardList';
-import { Wordmark } from '@/components/site/Wordmark';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { SiteHeader } from '@/components/site/SiteHeader';
+import { buttonClass } from '@/components/ui/Button';
 import { auth, signOut } from '@/lib/auth';
 import { listBoards } from '@/lib/boards';
 
@@ -12,36 +12,32 @@ export default async function DashboardPage() {
   // trust it as the sole guard (a misconfigured matcher must never leak data).
   if (!session?.user?.id) redirect('/login');
 
-  const name = session.user.name ?? session.user.email ?? 'there';
+  const accountLabel = session.user.email ?? session.user.name ?? 'Signed in';
   const boards = await listBoards(session.user.id);
 
   return (
     <div className="flex min-h-full flex-col">
-      <div className="border-line border-b">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
-          <Wordmark />
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <form
-              action={async () => {
-                'use server';
-                await signOut({ redirectTo: '/' });
-              }}
-            >
-              <button type="submit" className="btn btn-ghost !px-4 !py-2 text-sm">
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
+      <SiteHeader
+        action={
+          <form
+            action={async () => {
+              'use server';
+              await signOut({ redirectTo: '/' });
+            }}
+            className="flex items-center gap-2"
+          >
+            <span className="text-ink-soft hidden max-w-48 truncate text-[13px] sm:inline">
+              {accountLabel}
+            </span>
+            <button type="submit" className={buttonClass('secondary', 'sm')}>
+              Sign out
+            </button>
+          </form>
+        }
+      />
 
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-12">
-        <header>
-          <p className="font-hand text-accent -rotate-1 text-2xl">hi {name}</p>
-          <h1 className="text-foreground text-4xl font-extrabold tracking-tight">Your boards</h1>
-        </header>
-
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
+        <h1 className="text-foreground text-2xl font-semibold tracking-[-0.02em]">Boards</h1>
         <BoardList initialBoards={boards} />
       </main>
     </div>

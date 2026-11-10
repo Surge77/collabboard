@@ -110,10 +110,10 @@ export function CursorChat() {
       {bubbles.map((b) => (
         <div
           key={b.id}
-          className="absolute max-w-xs -translate-y-full rounded-lg rounded-bl-none bg-black/80 px-2 py-1 text-sm text-white shadow-md"
+          className="bg-foreground text-background shadow-pop absolute max-w-xs -translate-y-full rounded-lg rounded-bl-none px-2 py-1 text-sm"
           style={{ left: `${b.x * 100}%`, top: `${b.y * 100}%` }}
         >
-          <span className="mr-1 opacity-60">{b.name}:</span>
+          <span className="mr-1 font-semibold">{b.name}:</span>
           {b.text}
         </div>
       ))}
@@ -130,7 +130,7 @@ export function CursorChat() {
           }}
           placeholder="Say something…"
           aria-label="Cursor chat message"
-          className="pointer-events-auto absolute w-56 rounded-lg border border-black/10 bg-white px-2 py-1 text-sm shadow-lg outline-none dark:border-white/10 dark:bg-neutral-800"
+          className="border-line-strong bg-raised text-foreground shadow-pop placeholder:text-ink-soft focus:border-accent-text pointer-events-auto absolute w-56 rounded-lg border px-2 py-1 text-sm outline-none"
           style={{ left: `${openAt.x * 100}%`, top: `${openAt.y * 100}%` }}
         />
       ) : null}

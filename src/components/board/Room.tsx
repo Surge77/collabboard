@@ -18,9 +18,9 @@ function CanvasFallback() {
     <div
       role="status"
       aria-label="Connecting to room"
-      className="bg-foreground/[0.02] text-foreground/40 absolute inset-0 flex items-center justify-center text-sm"
+      className="bg-background text-ink-soft absolute inset-0 flex items-center justify-center text-sm"
     >
-      Connecting…
+      Connecting to the board…
     </div>
   );
 }
@@ -42,7 +42,9 @@ export function Room({ roomId, boardId, role, shareToken }: RoomProps) {
   );
 
   return (
-    <LiveblocksProvider authEndpoint={authEndpoint}>
+    // Free-plan badge goes top-right, where the board header reserves room for
+    // it, instead of bottom-right over tldraw's help menu.
+    <LiveblocksProvider authEndpoint={authEndpoint} badgeLocation="top-right">
       <RoomProvider id={roomId}>
         <ClientSideSuspense fallback={<CanvasFallback />}>
           <CollabCanvas boardId={boardId} role={role} />

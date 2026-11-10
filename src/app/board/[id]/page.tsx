@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { Canvas } from '@/components/board/Canvas';
 import { ShareDialog } from '@/components/board/ShareDialog';
+import { Icon } from '@/components/ui/Icon';
 import { auth } from '@/lib/auth';
 import { canEditRole, isAdminRole, resolveBoardAccess } from '@/lib/authz';
 import { boardRoomId } from '@/lib/liveblocks';
@@ -18,12 +19,15 @@ interface BoardPageProps {
 }
 
 export default async function BoardPage({ params, searchParams }: BoardPageProps) {
-  const session = await auth();
-  // Defense in depth alongside the proxy's authorized callback.
-  if (!session?.user?.id) redirect('/login');
-
   const { id } = await params;
   const { t: shareToken } = await searchParams;
+  const session = await auth();
+  // Defense in depth alongside the proxy's authorized callback. Carry the board
+  // (and invite token) through sign-in so the user lands back here.
+  if (!session?.user?.id) {
+    const back = `/board/${id}${shareToken ? `?t=${encodeURIComponent(shareToken)}` : ''}`;
+    redirect(`/login?callbackUrl=${encodeURIComponent(back)}`);
+  }
   const access = await resolveBoardAccess(id, session.user.id, shareToken);
   if (!access) notFound();
 
@@ -33,17 +37,24 @@ export default async function BoardPage({ params, searchParams }: BoardPageProps
 
   return (
     <main className="relative flex h-dvh w-full flex-col">
-      <header className="border-line bg-surface relative z-50 flex items-center gap-4 border-b px-4 py-2.5">
-        <Link href="/dashboard" className="text-ink-soft hover:text-accent text-sm font-semibold">
-          ← Boards
+      {/* Right padding keeps the free-plan Liveblocks badge (fixed top-right)
+          from covering Share. */}
+      <header className="border-line bg-surface relative z-50 flex h-14 shrink-0 items-center gap-3 border-b pr-24 pl-2 sm:pr-36">
+        <Link
+          href="/dashboard"
+          className="text-ink-soft hover:bg-hover hover:text-foreground flex h-9 items-center gap-1 rounded-md px-2 text-sm font-medium transition-colors duration-150"
+        >
+          <Icon name="back" size={16} />
+          Boards
         </Link>
-        <h1 className="text-foreground truncate text-sm font-bold">{board.title}</h1>
+        <span className="bg-line h-5 w-px" aria-hidden="true" />
+        <h1 className="text-foreground min-w-0 truncate text-sm font-semibold">{board.title}</h1>
         {!canEdit ? (
-          <span className="text-ink-soft border-foreground/20 rounded-full border-2 px-2 py-0.5 text-xs font-semibold">
+          <span className="border-line-strong text-ink-soft shrink-0 rounded border px-1.5 py-0.5 text-xs font-medium">
             View only
           </span>
         ) : null}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           {isAdmin ? <ShareDialog boardId={board.id} initialIsPublic={board.isPublic} /> : null}
         </div>
       </header>

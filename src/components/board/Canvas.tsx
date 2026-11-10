@@ -16,7 +16,7 @@ function CanvasSkeleton() {
     <div
       role="status"
       aria-label="Loading canvas"
-      className="bg-foreground/[0.02] text-foreground/40 absolute inset-0 flex items-center justify-center text-sm"
+      className="bg-background text-ink-soft absolute inset-0 flex items-center justify-center text-sm"
     >
       Loading canvas…
     </div>

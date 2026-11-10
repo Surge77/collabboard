@@ -1,6 +1,13 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
+
+import { Button } from '@/components/ui/Button';
+import { ConfirmInline } from '@/components/ui/ConfirmInline';
+import { INPUT_CLASS, LABEL_CLASS } from '@/components/ui/field';
+import { Icon } from '@/components/ui/Icon';
+import { IconButton } from '@/components/ui/IconButton';
+import { useDismiss } from '@/components/ui/useDismiss';
 
 interface ShareLink {
   id: string;
@@ -15,6 +22,8 @@ interface ShareDialogProps {
   initialIsPublic: boolean;
 }
 
+const COPIED_MS = 1500;
+
 export function ShareDialog({ boardId, initialIsPublic }: ShareDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPublic, setIsPublic] = useState(initialIsPublic);
@@ -23,6 +32,15 @@ export function ShareDialog({ boardId, initialIsPublic }: ShareDialogProps) {
   const [links, setLinks] = useState<ShareLink[]>([]);
   const [role, setRole] = useState<'VIEWER' | 'EDITOR'>('VIEWER');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const dialogId = useId();
+  const roleId = useId();
+  const publicId = useId();
+
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss({ open, onDismiss: close, containerRef: panelRef, returnFocusRef: triggerRef });
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const linkUrl = (token: string) => `${origin}/board/${boardId}?t=${token}`;
@@ -33,9 +51,11 @@ export function ShareDialog({ boardId, initialIsPublic }: ShareDialogProps) {
       if (res.ok) {
         const { data } = (await res.json()) as { data: ShareLink[] };
         setLinks(data);
+      } else {
+        setError('Could not load invite links.');
       }
     } catch {
-      // Non-fatal: the dialog still works for the public toggle.
+      setError('Could not load invite links.');
     }
   }, [boardId]);
 
@@ -59,11 +79,11 @@ export function ShareDialog({ boardId, initialIsPublic }: ShareDialogProps) {
       });
       if (!res.ok) {
         setIsPublic(!next);
-        setError('Could not update sharing');
+        setError('Could not update sharing. Try again.');
       }
     } catch {
       setIsPublic(!next);
-      setError('Could not update sharing');
+      setError('Could not update sharing. Try again.');
     } finally {
       setPending(false);
     }
@@ -80,13 +100,13 @@ export function ShareDialog({ boardId, initialIsPublic }: ShareDialogProps) {
         body: JSON.stringify({ role }),
       });
       if (!res.ok) {
-        setError('Could not create link');
+        setError('Could not create the link. Try again.');
         return;
       }
       const { data } = (await res.json()) as { data: ShareLink };
       setLinks((current) => [data, ...current]);
     } catch {
-      setError('Could not create link');
+      setError('Could not create the link. Try again.');
     } finally {
       setPending(false);
     }
@@ -94,14 +114,18 @@ export function ShareDialog({ boardId, initialIsPublic }: ShareDialogProps) {
 
   async function revoke(id: string) {
     setError(null);
+    setPending(true);
     try {
       const res = await fetch(`/api/boards/${boardId}/share-links?linkId=${id}`, {
         method: 'DELETE',
       });
       if (res.ok) setLinks((current) => current.filter((link) => link.id !== id));
-      else setError('Could not revoke link');
+      else setError('Could not revoke the link. Try again.');
     } catch {
-      setError('Could not revoke link');
+      setError('Could not revoke the link. Try again.');
+    } finally {
+      setPending(false);
+      setConfirmRevokeId(null);
     }
   }
 
@@ -109,86 +133,126 @@ export function ShareDialog({ boardId, initialIsPublic }: ShareDialogProps) {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 1500);
+      setTimeout(() => setCopiedId(null), COPIED_MS);
     } catch {
-      setError('Copy failed');
+      setError('Copy failed. Select the link and copy it manually.');
     }
   }
 
   return (
     <div className="relative">
-      <button
-        type="button"
+      <Button
+        ref={triggerRef}
+        variant="primary"
+        size="sm"
         onClick={toggleOpen}
-        className="border-foreground/15 hover:bg-foreground/5 rounded-lg border px-3 py-1.5 text-sm font-medium"
+        aria-expanded={open}
+        aria-controls={open ? dialogId : undefined}
       >
+        <Icon name="link" size={16} />
         Share
-      </button>
+      </Button>
       {open ? (
-        <div className="border-foreground/15 bg-background absolute right-0 z-50 mt-2 w-80 rounded-xl border p-3 shadow-lg">
-          <label className="flex items-center justify-between gap-3 text-sm">
-            <span>
-              <span className="font-medium">Public</span>
-              <span className="text-foreground/50 block text-xs">
-                Anyone signed in with the board link can view
+        <div
+          ref={panelRef}
+          id={dialogId}
+          role="dialog"
+          aria-label="Share board"
+          className="border-line bg-raised shadow-pop absolute right-0 z-[500] mt-2 flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-4 rounded-lg border p-4"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <label htmlFor={publicId} className="flex flex-col">
+              <span className="text-foreground text-sm font-medium">
+                Anyone with the link can view
               </span>
-            </span>
-            <input
-              type="checkbox"
-              checked={isPublic}
+              <span className="text-ink-soft text-xs">Viewers still need to sign in.</span>
+            </label>
+            <button
+              id={publicId}
+              type="button"
+              role="switch"
+              aria-checked={isPublic}
               disabled={pending}
-              onChange={togglePublic}
-              className="h-4 w-4"
-            />
-          </label>
+              onClick={togglePublic}
+              className={`relative h-6 w-10 shrink-0 rounded-full transition-colors duration-150 disabled:opacity-45 ${
+                isPublic ? 'bg-accent' : 'bg-selected border-line-strong border'
+              }`}
+            >
+              <span
+                className={`bg-surface absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full shadow transition-[left] duration-150 ${
+                  isPublic ? 'left-5' : 'left-1'
+                }`}
+              />
+            </button>
+          </div>
 
-          <div className="border-foreground/10 mt-3 border-t pt-3">
-            <p className="mb-1 text-sm font-medium">Invite links</p>
-            <div className="flex gap-2">
+          <div className="border-line flex flex-col gap-2 border-t pt-4">
+            <label htmlFor={roleId} className={LABEL_CLASS}>
+              Invite link
+            </label>
+            <div className="flex gap-1.5">
               <select
+                id={roleId}
                 value={role}
                 onChange={(e) => setRole(e.target.value as 'VIEWER' | 'EDITOR')}
-                className="border-foreground/15 flex-1 rounded-md border px-2 py-1 text-xs"
+                className={`${INPUT_CLASS} min-w-0 flex-1`}
               >
                 <option value="VIEWER">Can view</option>
                 <option value="EDITOR">Can edit</option>
               </select>
-              <button
-                type="button"
-                onClick={createLink}
-                disabled={pending}
-                className="bg-foreground text-background rounded-md px-2.5 py-1 text-xs font-medium disabled:opacity-40"
-              >
+              <Button onClick={createLink} disabled={pending}>
                 Create link
-              </button>
+              </Button>
             </div>
 
-            <ul className="mt-2 flex flex-col gap-2">
-              {links.map((link) => (
-                <li key={link.id} className="flex items-center gap-2">
-                  <span className="text-foreground/60 w-12 shrink-0 text-xs">
-                    {link.role === 'EDITOR' ? 'Edit' : 'View'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => copy(linkUrl(link.token), link.id)}
-                    className="border-foreground/15 min-w-0 flex-1 truncate rounded-md border px-2 py-1 text-left text-xs"
-                  >
-                    {copiedId === link.id ? 'Copied!' : linkUrl(link.token)}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => revoke(link.id)}
-                    className="text-xs text-red-500 hover:underline"
-                  >
-                    Revoke
-                  </button>
-                </li>
-              ))}
-            </ul>
+            {links.length > 0 ? (
+              <ul className="flex flex-col gap-1.5">
+                {links.map((link) => (
+                  <li key={link.id} className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-ink-soft w-10 shrink-0 text-xs font-medium">
+                        {link.role === 'EDITOR' ? 'Edit' : 'View'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => copy(linkUrl(link.token), link.id)}
+                        aria-label={`Copy ${link.role === 'EDITOR' ? 'edit' : 'view'} link`}
+                        className="border-line-strong hover:bg-hover text-foreground min-w-0 flex-1 truncate rounded-md border px-2 py-1.5 text-left text-xs"
+                      >
+                        {copiedId === link.id ? 'Copied to clipboard' : linkUrl(link.token)}
+                      </button>
+                      <IconButton
+                        icon="trash"
+                        size="sm"
+                        label={`Revoke ${link.role === 'EDITOR' ? 'edit' : 'view'} link`}
+                        onClick={() => setConfirmRevokeId(link.id)}
+                      />
+                    </div>
+                    {confirmRevokeId === link.id ? (
+                      <ConfirmInline
+                        message="Revoke this link? Anyone using it loses access."
+                        confirmLabel="Revoke"
+                        isBusy={pending}
+                        onConfirm={() => void revoke(link.id)}
+                        onCancel={() => setConfirmRevokeId(null)}
+                      />
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-ink-soft text-xs">No invite links yet.</p>
+            )}
           </div>
 
-          {error ? <p className="mt-2 text-xs text-red-500">{error}</p> : null}
+          <p role="status" className="sr-only">
+            {copiedId ? 'Link copied to clipboard' : ''}
+          </p>
+          {error ? (
+            <p role="alert" className="text-danger text-[13px]">
+              {error}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+import { buttonClass } from '@/components/ui/Button';
+
 export default function Error({
   error,
   reset,
@@ -14,19 +16,18 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="dotgrid mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-      <p className="font-hand text-coral -rotate-2 text-3xl">oops</p>
-      <h1 className="text-foreground text-3xl font-extrabold tracking-tight">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-start justify-center gap-3 px-4 py-16">
+      <h1 className="text-foreground text-2xl font-semibold tracking-[-0.02em]">
         Something went wrong
       </h1>
-      <p className="text-ink-soft text-sm">
-        An unexpected error occurred. You can try again, or head back to your boards.
+      <p className="text-ink-soft text-sm leading-relaxed">
+        This page hit an unexpected error. Try again; if it keeps happening, go back to your boards.
       </p>
-      <div className="mt-2 flex gap-3">
-        <button type="button" onClick={reset} className="btn btn-ink text-sm">
+      <div className="mt-2 flex gap-2">
+        <button type="button" onClick={reset} className={buttonClass('primary')}>
           Try again
         </button>
-        <a href="/dashboard" className="btn btn-ghost text-sm">
+        <a href="/dashboard" className={buttonClass('secondary')}>
           Back to boards
         </a>
       </div>

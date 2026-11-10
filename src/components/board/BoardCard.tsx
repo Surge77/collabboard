@@ -3,37 +3,26 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { INPUT_CLASS } from '@/components/ui/field';
+import { IconButton } from '@/components/ui/IconButton';
+import { formatEdited } from '@/lib/format-date';
 import { BOARD_TITLE_MAX } from '@/lib/validations/board';
 import type { BoardSummary } from '@/types/board';
 
 interface BoardCardProps {
   board: BoardSummary;
   isPending: boolean;
-  // Position in the grid; drives the cosmetic pin colour and tilt. Optional so
-  // callers that don't care about variety (e.g. tests) can omit it.
-  index?: number;
   onRename: (id: string, title: string) => void | Promise<void>;
   onDuplicate: (id: string) => void | Promise<void>;
   onDelete: (id: string) => void | Promise<void>;
 }
 
-// Cycled so a wall of boards looks pinned by hand rather than grid-perfect.
-const PIN_COLORS = ['var(--coral)', 'var(--accent)', '#10b981', '#f59e0b'];
-const TILTS = ['-rotate-1', 'rotate-1', 'rotate-2', '-rotate-2'];
-
-export function BoardCard({
-  board,
-  isPending,
-  index = 0,
-  onRename,
-  onDuplicate,
-  onDelete,
-}: BoardCardProps) {
+// One board as a list row: title, sharing, last edit, and row actions. The
+// actions show on hover/focus with a fine pointer and always on touch, and each
+// is named with the board title so a screen reader never hears a bare "Delete".
+export function BoardCard({ board, isPending, onRename, onDuplicate, onDelete }: BoardCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(board.title);
-
-  const pin = PIN_COLORS[index % PIN_COLORS.length];
-  const tilt = TILTS[index % TILTS.length];
 
   function commit() {
     const next = draft.trim();
@@ -43,49 +32,72 @@ export function BoardCard({
   }
 
   return (
-    <article
-      className={`bg-surface border-foreground sketch lift ${tilt} group relative flex flex-col gap-3 border-2 p-5`}
+    <li
       aria-busy={isPending}
+      className="group border-line hover:bg-hover relative flex min-h-14 items-center gap-3 border-b px-3 py-2 transition-colors duration-150 last:border-b-0"
     >
       <span
-        className="absolute -top-2 right-4 h-4 w-4 rounded-full border-2"
-        style={{ backgroundColor: pin, borderColor: 'var(--background)' }}
+        className="border-line-strong text-ink-soft hidden h-8 w-8 shrink-0 items-center justify-center rounded border sm:flex"
         aria-hidden="true"
-      />
-      {isEditing ? (
-        <input
-          autoFocus
-          aria-label="Board title"
-          value={draft}
-          maxLength={BOARD_TITLE_MAX}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') commit();
-            if (e.key === 'Escape') {
-              setDraft(board.title);
-              setIsEditing(false);
-            }
-          }}
-          className="border-foreground/30 rounded-md border-2 bg-transparent px-2 py-1 text-base font-bold"
-        />
-      ) : (
-        <Link
-          href={`/board/${board.id}`}
-          className="decoration-coral text-foreground text-lg font-bold underline-offset-4 hover:underline"
-        >
-          {board.title}
-        </Link>
-      )}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="2" y="5" width="4" height="4" stroke="currentColor" strokeWidth="1.2" />
+          <rect x="10" y="5" width="4" height="4" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M6 7h4" stroke="currentColor" strokeWidth="1.2" />
+        </svg>
+      </span>
 
-      <p className="text-ink-soft font-mono text-xs">
-        {new Date(board.updatedAt).toLocaleDateString()}
-        {board.isPublic ? ' · public' : ''}
-      </p>
+      <div className="flex min-w-0 flex-1 flex-col pointer-coarse:pr-36">
+        {isEditing ? (
+          <input
+            autoFocus
+            aria-label="Board title"
+            value={draft}
+            maxLength={BOARD_TITLE_MAX}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commit();
+              if (e.key === 'Escape') {
+                setDraft(board.title);
+                setIsEditing(false);
+              }
+            }}
+            className={`${INPUT_CLASS} h-8 font-medium`}
+          />
+        ) : (
+          <Link
+            href={`/board/${board.id}`}
+            className="text-foreground truncate text-sm font-medium after:absolute after:inset-0 hover:underline hover:underline-offset-2"
+          >
+            {board.title}
+          </Link>
+        )}
+        {/* On phones the date moves under the title so the name gets the width. */}
+        <span className="text-ink-soft text-xs tabular-nums sm:hidden">
+          <span className="sr-only">Edited </span>
+          {formatEdited(board.updatedAt)}
+          {board.isPublic ? ' · Public' : ''}
+        </span>
+      </div>
 
-      <div className="mt-1 flex gap-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-        <button
-          type="button"
+      {board.isPublic ? (
+        <span className="border-line-strong text-ink-soft hidden shrink-0 rounded border px-1.5 py-0.5 text-xs sm:inline">
+          Public
+        </span>
+      ) : null}
+      <span className="text-ink-soft hidden w-28 shrink-0 text-right text-xs tabular-nums sm:inline">
+        <span className="sr-only">Edited </span>
+        {formatEdited(board.updatedAt)}
+      </span>
+
+      {/* Overlaid at the row's right edge so hidden actions never take width
+          from the title; always shown on touch, on hover/focus otherwise. */}
+      <div className="bg-hover absolute inset-y-0 right-0 z-10 flex items-center gap-0.5 pr-2 pl-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:bg-transparent pointer-coarse:opacity-100">
+        <IconButton
+          icon="pencil"
+          size="sm"
+          label={`Rename ${board.title}`}
           disabled={isPending}
           onClick={() => {
             // Re-seed from the current prop: useState's initializer only ran
@@ -93,27 +105,23 @@ export function BoardCard({
             setDraft(board.title);
             setIsEditing(true);
           }}
-          className="text-ink-soft hover:text-accent text-xs font-semibold disabled:opacity-40"
-        >
-          Rename
-        </button>
-        <button
-          type="button"
+        />
+        <IconButton
+          icon="copy"
+          size="sm"
+          label={`Duplicate ${board.title}`}
           disabled={isPending}
           onClick={() => onDuplicate(board.id)}
-          className="text-ink-soft hover:text-accent text-xs font-semibold disabled:opacity-40"
-        >
-          Duplicate
-        </button>
-        <button
-          type="button"
+        />
+        <IconButton
+          icon="trash"
+          size="sm"
+          label={`Delete ${board.title}`}
           disabled={isPending}
           onClick={() => onDelete(board.id)}
-          className="text-xs font-medium text-red-500 hover:text-red-600 disabled:opacity-40"
-        >
-          Delete
-        </button>
+          className="hover:text-danger"
+        />
       </div>
-    </article>
+    </li>
   );
 }

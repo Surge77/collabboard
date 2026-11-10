@@ -1,0 +1,374 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-03T00:00:00Z",
+  "title": "Design System: CollabBoard",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Ink Blue",
+        "canonical": "#2d5bff",
+        "darkToken": "accent-dark",
+        "tonalRamp": [
+          "#0b1020",
+          "#162a80",
+          "#1f47e0",
+          "#2d5bff",
+          "#5b82ff",
+          "#8aa6ff",
+          "#c3d1ff",
+          "#eef2ff"
+        ]
+      },
+      "accent-hover": {
+        "role": "primary",
+        "displayName": "Ink Blue Deep",
+        "canonical": "#1f47e0",
+        "darkToken": "accent-hover-dark",
+        "tonalRamp": [
+          "#0b1020",
+          "#162a80",
+          "#1f47e0",
+          "#2d5bff",
+          "#5b82ff",
+          "#8aa6ff",
+          "#c3d1ff",
+          "#eef2ff"
+        ]
+      },
+      "accent-text": {
+        "role": "primary",
+        "displayName": "Ink Blue Text",
+        "canonical": "#2448d8",
+        "darkToken": "accent-text-dark",
+        "tonalRamp": [
+          "#0b1020",
+          "#162a80",
+          "#2448d8",
+          "#2d5bff",
+          "#5b82ff",
+          "#8aa6ff",
+          "#c3d1ff",
+          "#eef2ff"
+        ]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "Ink On Blue",
+        "canonical": "#ffffff",
+        "darkToken": "accent-ink-dark"
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Workspace Grey",
+        "canonical": "#f6f7f9",
+        "darkToken": "background-dark",
+        "tonalRamp": [
+          "#0f1115",
+          "#16181d",
+          "#2a2d35",
+          "#5b6170",
+          "#8a90a0",
+          "#e3e5ea",
+          "#f0f1f4",
+          "#f6f7f9"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Sheet White",
+        "canonical": "#ffffff",
+        "darkToken": "surface-dark",
+        "tonalRamp": [
+          "#0f1115",
+          "#16181d",
+          "#2a2d35",
+          "#5b6170",
+          "#8a90a0",
+          "#e3e5ea",
+          "#f0f1f4",
+          "#ffffff"
+        ]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Raised",
+        "canonical": "#ffffff",
+        "darkToken": "raised-dark"
+      },
+      "hover": {
+        "role": "neutral",
+        "displayName": "Hover Wash",
+        "canonical": "#f0f1f4",
+        "darkToken": "hover-dark"
+      },
+      "selected": {
+        "role": "neutral",
+        "displayName": "Selected Wash",
+        "canonical": "#e6e8ee",
+        "darkToken": "selected-dark"
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Graphite Ink",
+        "canonical": "#16181d",
+        "darkToken": "foreground-dark",
+        "tonalRamp": [
+          "#0f1115",
+          "#16181d",
+          "#2a2d35",
+          "#5b6170",
+          "#8a90a0",
+          "#e3e5ea",
+          "#f0f1f4",
+          "#f6f7f9"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "#5b6170",
+        "darkToken": "ink-soft-dark"
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e3e5ea",
+        "darkToken": "line-dark"
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "canonical": "#8a90a0",
+        "darkToken": "line-strong-dark"
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Signal Red",
+        "canonical": "#c9302c",
+        "darkToken": "danger-dark",
+        "tonalRamp": [
+          "#3a1d1f",
+          "#7a1f1c",
+          "#c9302c",
+          "#e0453f",
+          "#ff6b66",
+          "#ff9a96",
+          "#fcd3d2",
+          "#fdecec"
+        ]
+      },
+      "danger-soft": {
+        "role": "tertiary",
+        "displayName": "Danger Wash",
+        "canonical": "#fdecec",
+        "darkToken": "danger-soft-dark"
+      },
+      "canvas-dark": { "role": "neutral", "displayName": "Canvas Graphite", "canonical": "#121419" }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Landing headline only; 36px below 640px, 48px above."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Landing section headings (24px to 30px); dashboard and onboarding headings at 20px."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Dock panel titles, list headings, feature names."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running copy, capped at 52-60ch on the landing."
+      },
+      "body-compact": {
+        "displayName": "Body Compact",
+        "purpose": "Panel descriptions, comment bodies, confirm messages; the most used chrome size."
+      },
+      "label": { "displayName": "Label", "purpose": "Form labels and small-button text." },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Dates, tags, status and error text; tabular figures."
+      }
+    },
+    "shadows": [
+      {
+        "name": "pop",
+        "value": "0 1px 2px rgb(16 24 40 / 0.06), 0 8px 24px rgb(16 24 40 / 0.12)",
+        "purpose": "Light theme. Only surfaces floating over the canvas or page: overlay dock panel, timer chip, comment popovers and pins, cursor chat, undo toast."
+      },
+      {
+        "name": "pop-dark",
+        "value": "0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.5)",
+        "purpose": "Dark theme counterpart of pop."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "150ms ease (transition-colors / opacity)",
+        "purpose": "Hover, focus and state color changes on every control."
+      },
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Landing diagram: connectors draw in over 900ms, nodes fade in over 400ms; only under prefers-reduced-motion: no-preference."
+      },
+      {
+        "name": "reaction-float",
+        "value": "4s ease-out",
+        "purpose": "Emote reactions rise and fade; reduced motion keeps a fade without travel."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ],
+    "focus": {
+      "value": "outline: 2px solid var(--accent); outline-offset: 2px",
+      "purpose": "Global :focus-visible ring; fields swap it for an accent-text border."
+    },
+    "port": {
+      "value": "7px square, 1px solid currentColor border, var(--surface) fill",
+      "purpose": "Marks where a connector meets a node or a control meets what it opens."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one accent-filled action per view.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Start a board</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 6px; font: 500 14px/1 Geist, system-ui, sans-serif; white-space: nowrap; cursor: pointer; border: 1px solid transparent; transition: background-color 150ms, color 150ms; } .ds-btn-primary { background: var(--accent, #2d5bff); color: var(--accent-ink, #fff); } .ds-btn-primary:hover { background: var(--accent-hover, #1f47e0); } .ds-btn:focus-visible { outline: 2px solid var(--accent, #2d5bff); outline-offset: 2px; } .ds-btn:disabled { opacity: 0.45; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Default button: surface fill bounded by the strong hairline.",
+      "html": "<button class=\"ds-btn-secondary\">Sign in</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 6px; font: 500 14px/1 Geist, system-ui, sans-serif; background: var(--surface, #fff); color: var(--foreground, #16181d); border: 1px solid var(--line-strong, #8a90a0); cursor: pointer; transition: background-color 150ms; } .ds-btn-secondary:hover { background: var(--hover, #f0f1f4); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--accent, #2d5bff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Low-emphasis action: no fill until hover.",
+      "html": "<button class=\"ds-btn-ghost\">How it works</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 6px; font: 500 14px/1 Geist, system-ui, sans-serif; background: transparent; color: var(--ink-soft, #5b6170); border: 0; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-btn-ghost:hover { background: var(--hover, #f0f1f4); color: var(--foreground, #16181d); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--accent, #2d5bff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive confirm: secondary shape, red text, red wash on hover.",
+      "html": "<button class=\"ds-btn-danger\">Delete</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; height: 32px; padding: 0 10px; border-radius: 6px; font: 500 13px/1 Geist, system-ui, sans-serif; background: var(--surface, #fff); color: var(--danger, #c9302c); border: 1px solid var(--line-strong, #8a90a0); cursor: pointer; transition: background-color 150ms; } .ds-btn-danger:hover { background: var(--danger-soft, #fdecec); } .ds-btn-danger:focus-visible { outline: 2px solid var(--accent, #2d5bff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Shared field chrome: strong hairline at 3:1, accent-text border on focus.",
+      "html": "<label class=\"ds-label\" for=\"ds-f\">Describe a diagram</label><input id=\"ds-f\" class=\"ds-input\" placeholder=\"e.g. Signup flow: landing, form, email check\" />",
+      "css": ".ds-label { display: block; margin-bottom: 6px; font: 500 13px/1.375 Geist, system-ui, sans-serif; color: var(--foreground, #16181d); } .ds-input { width: 100%; height: 36px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line-strong, #8a90a0); background: var(--surface, #fff); color: var(--foreground, #16181d); font: 400 14px Geist, system-ui, sans-serif; transition: border-color 150ms; } .ds-input::placeholder { color: var(--ink-soft, #5b6170); } .ds-input:hover { border-color: color-mix(in srgb, var(--foreground, #16181d) 60%, transparent); } .ds-input:focus { outline: none; border-color: var(--accent-text, #2448d8); }"
+    },
+    {
+      "name": "Board Rail",
+      "kind": "nav",
+      "refersTo": "rail",
+      "description": "The one strip of board tools; the active tab grows a connector and port toward its panel.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Board tools\"><button class=\"ds-rail-tab is-active\" aria-label=\"AI\"><span class=\"ds-rail-wire\"></span><span class=\"ds-port\"></span><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"><path d=\"M10 2.8l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5 1.5-4Z\"/></svg></button><button class=\"ds-rail-tab\" aria-label=\"Comments\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"><path d=\"M4 4.5h12a1 1 0 0 1 1 1v7.5a1 1 0 0 1-1 1H9l-3.5 3v-3H4a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z\"/></svg><span class=\"ds-badge\">3</span></button></nav>",
+      "css": ".ds-rail { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 48px; padding: 12px 0; background: var(--surface, #fff); border-left: 1px solid var(--line, #e3e5ea); } .ds-rail-tab { position: relative; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-soft, #5b6170); cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-rail-tab:hover { background: var(--hover, #f0f1f4); color: var(--foreground, #16181d); } .ds-rail-tab.is-active { background: var(--selected, #e6e8ee); color: var(--foreground, #16181d); } .ds-rail-tab:focus-visible { outline: 2px solid var(--accent, #2d5bff); outline-offset: 2px; } .ds-rail-wire { position: absolute; top: 50%; left: -6px; width: 6px; height: 1px; background: var(--line-strong, #8a90a0); } .ds-port { position: absolute; top: 50%; left: -10px; width: 7px; height: 7px; transform: translateY(-50%); border: 1px solid var(--line-strong, #8a90a0); background: var(--surface, #fff); box-sizing: border-box; } .ds-badge { position: absolute; top: -2px; right: -2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9999px; background: var(--foreground, #16181d); color: var(--background, #f6f7f9); font: 600 10px/16px Geist, system-ui, sans-serif; font-variant-numeric: tabular-nums; text-align: center; }"
+    },
+    {
+      "name": "Dock Panel",
+      "kind": "custom",
+      "refersTo": "dock-panel",
+      "description": "The single 320px panel every rail tab opens into; docked beside the canvas, no shadow.",
+      "html": "<section class=\"ds-dock\"><header class=\"ds-dock-head\"><h2>AI</h2><button class=\"ds-icon-btn\" aria-label=\"Close AI\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\"><path d=\"M5 5l10 10M15 5 5 15\"/></svg></button></header><p class=\"ds-dock-desc\">Turn a sentence into an editable diagram, or ask AI about this board.</p><div class=\"ds-dock-body\">Panel content</div></section>",
+      "css": ".ds-dock { width: 320px; display: flex; flex-direction: column; background: var(--surface, #fff); border-left: 1px solid var(--line, #e3e5ea); color: var(--foreground, #16181d); font-family: Geist, system-ui, sans-serif; } .ds-dock-head { display: flex; align-items: center; justify-content: space-between; height: 48px; padding: 0 6px 0 16px; border-bottom: 1px solid var(--line, #e3e5ea); } .ds-dock-head h2 { margin: 0; font-size: 14px; font-weight: 600; } .ds-dock-desc { margin: 0; padding: 10px 16px; font-size: 13px; line-height: 1.375; color: var(--ink-soft, #5b6170); border-bottom: 1px solid var(--line, #e3e5ea); } .ds-dock-body { padding: 16px; font-size: 14px; } .ds-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-soft, #5b6170); cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-icon-btn:hover { background: var(--hover, #f0f1f4); color: var(--foreground, #16181d); } .ds-icon-btn:focus-visible { outline: 2px solid var(--accent, #2d5bff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Undo Toast",
+      "kind": "custom",
+      "refersTo": "floating-surface",
+      "description": "Floating surface recipe (raised, hairline, 8px, Pop shadow) as used by toasts, popovers and the timer chip.",
+      "html": "<div class=\"ds-toast\" role=\"status\"><span>Board deleted</span><button class=\"ds-toast-undo\">Undo</button></div>",
+      "css": ".ds-toast { display: inline-flex; align-items: center; gap: 12px; padding: 6px 6px 6px 16px; border-radius: 8px; border: 1px solid var(--line, #e3e5ea); background: var(--raised, #fff); color: var(--foreground, #16181d); box-shadow: var(--shadow-pop, 0 1px 2px rgb(16 24 40 / 0.06), 0 8px 24px rgb(16 24 40 / 0.12)); font: 400 14px Geist, system-ui, sans-serif; } .ds-toast-undo { height: 32px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: var(--accent-text, #2448d8); font: 600 13px Geist, system-ui, sans-serif; cursor: pointer; transition: background-color 150ms; } .ds-toast-undo:hover { background: var(--hover, #f0f1f4); } .ds-toast-undo:focus-visible { outline: 2px solid var(--accent, #2d5bff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Board Row",
+      "kind": "card",
+      "refersTo": "board-row",
+      "description": "Boards listed as hairline-divided rows with a node-and-connector icon box, tag and tabular date.",
+      "html": "<ul class=\"ds-rows\"><li class=\"ds-row\"><span class=\"ds-row-icon\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"5\" width=\"4\" height=\"4\"/><rect x=\"10\" y=\"5\" width=\"4\" height=\"4\"/><path d=\"M6 7h4\"/></svg></span><a class=\"ds-row-title\" href=\"#\">Q4 service map</a><span class=\"ds-tag\">Public</span><span class=\"ds-row-date\">Oct 2, 14:05</span></li></ul>",
+      "css": ".ds-rows { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line, #e3e5ea); border-radius: 8px; background: var(--surface, #fff); } .ds-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 12px; border-bottom: 1px solid var(--line, #e3e5ea); font-family: Geist, system-ui, sans-serif; transition: background-color 150ms; } .ds-row:last-child { border-bottom: 0; } .ds-row:hover { background: var(--hover, #f0f1f4); } .ds-row-icon { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid var(--line-strong, #8a90a0); border-radius: 4px; color: var(--ink-soft, #5b6170); } .ds-row-title { flex: 1; font-size: 14px; font-weight: 500; color: var(--foreground, #16181d); text-decoration: none; } .ds-row-title:hover { text-decoration: underline; text-underline-offset: 2px; } .ds-row-title:focus-visible { outline: 2px solid var(--accent, #2d5bff); outline-offset: 2px; } .ds-tag { padding: 2px 6px; border: 1px solid var(--line-strong, #8a90a0); border-radius: 4px; font-size: 12px; color: var(--ink-soft, #5b6170); } .ds-row-date { width: 112px; text-align: right; font-size: 12px; color: var(--ink-soft, #5b6170); font-variant-numeric: tabular-nums; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Diagram Notation",
+    "overview": "The chrome speaks the same box-and-connector language the AI draws on the canvas. Controls are boxes drawn with 1px hairlines; where one thing opens or feeds another, a thin connector meets it at a small square port. The result reads as a professional tool of its category (Figma, Linear, tldraw's own panels) rather than a playful whiteboard clone: graphite neutrals, one ink-blue action color, one sans family, straight small radii.\n\nThe canvas is the product, so the chrome is dense and quiet. All app controls live in a single 48px rail on the right edge of the board, outside tldraw's canvas, and every rail tab opens into the same 320px docked panel; on wide screens the canvas shrinks to make room instead of being covered. The system refuses the floating-pill-toolbar-over-canvas arrangement every whiteboard clone ships. Depth is flat at rest; a soft shadow appears only on surfaces that genuinely float over the canvas.\n\nBoth themes are first-class. Every text pair clears 4.5:1 and every field boundary and focus line clears 3:1 in light and dark (WCAG 1.4.3 / 1.4.11), which is why interactive boundaries use the strong line and never the structural one. The owner has rejected the editorial \"AI house style\" (serif mastheads, ivory paper, mono small-caps labels, staggered reveals) and any hand-drawn or paper look.",
+    "keyCharacteristics": [
+      "Graphite neutrals plus a single ink-blue action color.",
+      "1px hairlines everywhere; square 7px ports where a connector attaches.",
+      "Geist sans throughout with stylistic set `ss01`; tabular figures for live numbers.",
+      "One right rail, one docked panel; nothing app-owned floats over tldraw's chrome.",
+      "Flat at rest; one shared soft shadow for floating surfaces only."
+    ],
+    "rules": [
+      {
+        "name": "The One Ink Rule",
+        "body": "The accent is reserved for the primary action, on-state, selection and focus. Everything else is neutral; a second accent-filled control on the same view means one of them is wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Lines Rule",
+        "body": "`line` divides structure; `line-strong` bounds anything you can type into or press. Never draw a field, secondary button or tag with the structural line: it fails 3:1.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Every number that changes or lines up (timer, badge counts, avatar overflow, edit dates) uses tabular figures in a fixed-width cell so it never jitters.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Family Rule",
+        "body": "Geist sans only. No serif display, no mono labels, no uppercase-tracked eyebrows above headings.",
+        "section": "typography"
+      },
+      {
+        "name": "The Float-Only Shadow Rule",
+        "body": "If a surface is docked, inline or part of the page flow, it has a hairline and no shadow. Shadow means \"this sits on top of the canvas\".",
+        "section": "elevation"
+      },
+      {
+        "name": "The Port Rule",
+        "body": "A port marks a real connection. Use it only where a connector meets a node or a control meets what it opens; never as a bullet, divider ornament or decoration.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do keep the accent to one primary action per view, plus on-states, selection and focus.",
+      "Do bound every field, secondary button and tag with `line-strong` (≥3:1); use `line` only for structural dividers.",
+      "Do put new board tools in the right rail and open them in the dock panel at 320px.",
+      "Do use a port and a 1px connector where a control attaches to what it opens, and nowhere else.",
+      "Do use `shadow-pop` only on surfaces that float over the canvas or page; dock beside, don't float over.",
+      "Do set every live or aligned number in tabular figures.",
+      "Do give coarse pointers 44px targets with `pointer-coarse` overrides instead of loosening desktop density.",
+      "Do confirm or offer undo for anything that changes the board for everyone, inline next to the item."
+    ],
+    "donts": [
+      "Don't float pill toolbars or app controls over the tldraw canvas or its own menus.",
+      "Don't introduce a second accent hue, gradients, or an accent-filled secondary action.",
+      "Don't add a serif or mono display face, uppercase tracked eyebrows, ivory paper textures, hand-drawn strokes, or staggered reveal choreography.",
+      "Don't use radii above 8px on chrome, or pill shapes outside avatars, badges and the switch.",
+      "Don't add shadows to docked or in-flow surfaces, or use heavier shadows than Pop.",
+      "Don't use translucent white panels with backdrop blur; surfaces are opaque theme tokens."
+    ]
+  }
+}

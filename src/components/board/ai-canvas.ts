@@ -117,19 +117,3 @@ export function tidyBoard(editor: Editor): number {
   );
   return moved.length;
 }
-
-export async function readError(res: Response): Promise<string> {
-  const body: unknown = await res.json().catch(() => null);
-  if (
-    body &&
-    typeof body === 'object' &&
-    'error' in body &&
-    body.error &&
-    typeof body.error === 'object' &&
-    'message' in body.error &&
-    typeof body.error.message === 'string'
-  ) {
-    return body.error.message;
-  }
-  return 'Something went wrong';
-}

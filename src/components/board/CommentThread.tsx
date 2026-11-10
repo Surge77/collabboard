@@ -2,10 +2,15 @@
 
 import { useState } from 'react';
 
+import { Button } from '@/components/ui/Button';
+import { ConfirmInline } from '@/components/ui/ConfirmInline';
+import { INPUT_CLASS } from '@/components/ui/field';
+import { IconButton } from '@/components/ui/IconButton';
 import type { CommentNode } from '@/lib/comments';
 
 interface CommentThreadProps {
   thread: CommentNode;
+  canComment: boolean;
   onReply: (parentId: string, body: string) => Promise<boolean>;
   onResolve: (commentId: string, resolved: boolean) => Promise<boolean>;
   onDelete: (commentId: string) => Promise<boolean>;
@@ -20,6 +25,7 @@ function authorName(node: CommentNode): string {
 // composer, and resolve/delete actions. Positioning is the parent's job.
 export function CommentThread({
   thread,
+  canComment,
   onReply,
   onResolve,
   onDelete,
@@ -27,79 +33,113 @@ export function CommentThread({
 }: CommentThreadProps) {
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function submitReply() {
     const body = reply.trim();
     if (!body || busy) return;
     setBusy(true);
+    setError(null);
     const ok = await onReply(thread.id, body);
     setBusy(false);
     if (ok) setReply('');
+    else setError('Reply not sent. Try again.');
+  }
+
+  async function confirmDelete(id: string) {
+    setBusy(true);
+    setError(null);
+    const ok = await onDelete(id);
+    setBusy(false);
+    setConfirmDeleteId(null);
+    if (!ok) setError('Comment not deleted. Try again.');
   }
 
   return (
-    <div className="pointer-events-auto flex w-72 flex-col gap-2 rounded-xl border border-black/10 bg-white/95 p-3 shadow-xl backdrop-blur">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-neutral-700">
-          {thread.resolved ? 'Resolved' : 'Comment'}
+    <div
+      role="dialog"
+      aria-label={`Comment thread by ${authorName(thread)}`}
+      className="border-line bg-raised shadow-pop pointer-events-auto flex w-72 flex-col gap-3 rounded-lg border p-3"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-ink-soft text-xs font-medium">
+          {thread.resolved ? 'Resolved thread' : 'Thread'}
         </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onResolve(thread.id, !thread.resolved)}
-            className="text-xs font-medium text-neutral-500 hover:text-neutral-900"
-          >
-            {thread.resolved ? 'Reopen' : 'Resolve'}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close thread"
-            className="text-neutral-500 hover:text-neutral-900"
-          >
-            ×
-          </button>
+        <div className="flex items-center gap-0.5">
+          {canComment ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => void onResolve(thread.id, !thread.resolved)}
+            >
+              {thread.resolved ? 'Reopen' : 'Resolve'}
+            </Button>
+          ) : null}
+          <IconButton icon="close" label="Close thread" size="sm" onClick={onClose} />
         </div>
       </div>
 
-      <ul className="flex max-h-56 flex-col gap-2 overflow-auto">
+      <ul className="flex max-h-60 flex-col gap-3 overflow-auto">
         {[thread, ...thread.replies].map((node) => (
-          <li key={node.id} className="group flex flex-col gap-0.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xs font-semibold text-neutral-800">{authorName(node)}</span>
-              <button
-                type="button"
-                onClick={() => onDelete(node.id)}
-                aria-label="Delete comment"
-                className="text-xs text-neutral-400 opacity-0 group-hover:opacity-100 hover:text-red-600"
-              >
-                Delete
-              </button>
+          <li key={node.id} className="group flex flex-col gap-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-foreground text-[13px] font-semibold">{authorName(node)}</span>
+              {canComment ? (
+                <IconButton
+                  icon="trash"
+                  size="sm"
+                  label={`Delete comment by ${authorName(node)}`}
+                  onClick={() => setConfirmDeleteId(node.id)}
+                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
+                />
+              ) : null}
             </div>
-            <p className="text-xs whitespace-pre-wrap text-neutral-700">{node.body}</p>
+            <p className="text-foreground text-[13px] leading-snug whitespace-pre-wrap">
+              {node.body}
+            </p>
+            {confirmDeleteId === node.id ? (
+              <ConfirmInline
+                message={
+                  node.id === thread.id
+                    ? 'Delete this comment and its replies for everyone?'
+                    : 'Delete this reply for everyone?'
+                }
+                confirmLabel="Delete"
+                isBusy={busy}
+                onConfirm={() => void confirmDelete(node.id)}
+                onCancel={() => setConfirmDeleteId(null)}
+              />
+            ) : null}
           </li>
         ))}
       </ul>
 
-      <div className="flex gap-2">
-        <input
-          value={reply}
-          onChange={(e) => setReply(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void submitReply();
+      {canComment ? (
+        <form
+          className="flex gap-1.5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submitReply();
           }}
-          placeholder="Reply…"
-          className="min-w-0 flex-1 rounded-md border border-black/15 px-2 py-1 text-xs text-neutral-900 outline-none focus:border-black/40"
-        />
-        <button
-          type="button"
-          onClick={submitReply}
-          disabled={busy || !reply.trim()}
-          className="rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white disabled:opacity-40"
         >
-          Send
-        </button>
-      </div>
+          <input
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
+            placeholder="Reply…"
+            aria-label="Reply to thread"
+            className={`${INPUT_CLASS} h-8 min-w-0 flex-1 text-[13px]`}
+          />
+          <Button type="submit" size="sm" variant="primary" disabled={busy || !reply.trim()}>
+            Send
+          </Button>
+        </form>
+      ) : null}
+      {error ? (
+        <p role="alert" className="text-danger text-xs">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
